@@ -1,4 +1,4 @@
-function initCommands(getCity) {
+function initCommands(getCity, hooks) {
 
   async function getWeather() {
     const city = getCity();
@@ -59,10 +59,13 @@ function initCommands(getCity) {
     return `${result} !`;
   }
 
-  function rollDice(faces) {
+  async function rollDice(faces) {
     const n = faces || 6;
     const result = Math.floor(Math.random() * n) + 1;
-    return `J'ai lancé un dé à ${n} faces... ${result} !`;
+    if (hooks && hooks.onDiceRoll) {
+      await hooks.onDiceRoll(n, result);
+    }
+    return `${result} !`;
   }
 
   async function handle(text) {
@@ -74,7 +77,7 @@ function initCommands(getCity) {
     if (t.includes('dé') || t.includes('de ')) {
       const facesMatch = t.match(/(\d+)\s*face/);
       const faces = facesMatch ? parseInt(facesMatch[1], 10) : 6;
-      return rollDice(faces);
+      return await rollDice(faces);
     }
     if (t.includes('météo') || t.includes('meteo') || t.includes('temps qu\'il fait') || t.includes('temps fait')) {
       return await getWeather();
