@@ -1,1 +1,44 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
+body {
+  background: #050608;
+  height: 100vh;
+  overflow: hidden;
+  font-family: -apple-system, sans-serif;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 24px;
+}
+
+#sphere {
+  width: 90vw;
+  max-width: 420px;
+  height: 90vw;
+  max-height: 420px;
+}
+
+#status {
+  color: #5f8db3;
+  font-size: 14px;
+  text-align: center;
+}
+
+#settingsBtn {
+  background: transparent;
+  border: 0.5px solid #1c3550;
+  color: #6fa8dc;
+  border-radius: 12px;
+  padding: 10px 22px;
+  font-size: 14px;
+  cursor: pointer;
+}
