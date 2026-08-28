@@ -1,24 +1,11 @@
 /* =========================================================
-   JARVIS V2 — INTERFACE VISUELLE
-   Aucun JavaScript supplémentaire.
-   Les IDs/classes existants sont conservés.
+   JARVIS V2 — STYLE
    ========================================================= */
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-:root {
-  --bg: #020508;
-  --blue: #5dbdff;
-  --blue-light: #a9e3ff;
-  --blue-dark: #214967;
-  --text: #d8f2ff;
-  --muted: #54758d;
-  --line: rgba(77, 177, 235, 0.22);
-  --glow: rgba(36, 157, 225, 0.28);
 }
 
 html,
@@ -29,20 +16,20 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(
-      circle at center,
-      rgba(0, 95, 145, 0.10) 0%,
-      rgba(0, 25, 42, 0.08) 25%,
-      transparent 58%
-    ),
-    #020508;
+  background: #020508;
+  color: #d8f2ff;
 
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
 
   -webkit-user-select: none;
   user-select: none;
+
+  -webkit-tap-highlight-color: transparent;
 
   overscroll-behavior: none;
 }
@@ -60,6 +47,7 @@ body {
 
   display: flex;
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
 
@@ -70,7 +58,9 @@ body {
   isolation: isolate;
 }
 
-/* Halo général derrière JARVIS */
+/* =========================================================
+   HALO CENTRAL
+   ========================================================= */
 
 #app::before {
   content: "";
@@ -115,19 +105,22 @@ body {
   }
 }
 
-/* Grille futuriste très légère */
+/* =========================================================
+   GRILLE FUTURISTE
+   ========================================================= */
 
 #app::after {
   content: "";
 
   position: absolute;
+
   inset: 0;
 
   pointer-events: none;
 
   z-index: -1;
 
-  opacity: 0.18;
+  opacity: 0.16;
 
   background-image:
     linear-gradient(
@@ -158,7 +151,7 @@ body {
 }
 
 /* =========================================================
-   SPHÈRE
+   SPHÈRE JARVIS
    ========================================================= */
 
 #sphere {
@@ -176,18 +169,55 @@ body {
 
   touch-action: manipulation;
 
+  /*
+   * Empêche le navigateur d'afficher
+   * son contour bleu lorsqu'on touche
+   * la sphère.
+   */
+
+  outline: none !important;
+
+  border: none;
+
+  box-shadow: none;
+
+  -webkit-tap-highlight-color: transparent;
+
+  -webkit-focus-ring-color: transparent;
+
+  user-select: none;
+  -webkit-user-select: none;
+
   z-index: 2;
 
-  /*
-    Le canvas reste totalement contrôlé par sphere.js.
-    On ajoute seulement un effet lumineux autour.
-  */
-
   filter:
-    drop-shadow(0 0 6px rgba(67, 186, 255, 0.75))
-    drop-shadow(0 0 25px rgba(0, 125, 205, 0.25));
+    drop-shadow(
+      0 0 6px rgba(67, 186, 255, 0.75)
+    )
+    drop-shadow(
+      0 0 25px rgba(0, 125, 205, 0.25)
+    );
 
-  animation: sphereFloat 5s ease-in-out infinite;
+  animation:
+    sphereFloat 5s ease-in-out infinite;
+}
+
+/*
+ * Tous les états possibles du canvas.
+ * Aucun contour bleu au toucher.
+ */
+
+#sphere:hover,
+#sphere:focus,
+#sphere:focus-visible,
+#sphere:active {
+  outline: none !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+
+  -webkit-tap-highlight-color: transparent;
 }
 
 @keyframes sphereFloat {
@@ -202,16 +232,30 @@ body {
 }
 
 /* =========================================================
-   ANNEAUX FUTURISTES AUTOUR DE LA SPHÈRE
+   TOUS LES CANVAS
    ========================================================= */
 
-/*
-   On utilise le conteneur #app et des pseudo-éléments
-   pour ne créer aucun nouvel élément HTML.
-*/
+canvas {
+  outline: none !important;
 
-#app::before {
-  /* Le halo existe déjà ici. */
+  border: none;
+
+  box-shadow: none;
+
+  -webkit-tap-highlight-color: transparent;
+
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+canvas:focus,
+canvas:focus-visible,
+canvas:active {
+  outline: none !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
 }
 
 /* =========================================================
@@ -228,6 +272,7 @@ body {
   color: #6597b5;
 
   font-size: 13px;
+
   font-weight: 400;
 
   letter-spacing: 0.8px;
@@ -245,8 +290,6 @@ body {
   z-index: 5;
 }
 
-/* Petits points lumineux sous le statut */
-
 #status::after {
   content: "•  •  •";
 
@@ -257,9 +300,11 @@ body {
   color: rgba(77, 181, 234, 0.45);
 
   font-size: 7px;
+
   letter-spacing: 3px;
 
-  animation: statusDots 2s ease-in-out infinite;
+  animation:
+    statusDots 2s ease-in-out infinite;
 }
 
 @keyframes statusDots {
@@ -280,13 +325,21 @@ body {
 #settingsBtn {
   position: absolute;
 
-  right: max(18px, env(safe-area-inset-right));
-  bottom: max(18px, env(safe-area-inset-bottom));
+  right: max(
+    18px,
+    env(safe-area-inset-right)
+  );
+
+  bottom: max(
+    18px,
+    env(safe-area-inset-bottom)
+  );
 
   width: 48px;
   height: 48px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
@@ -299,7 +352,8 @@ body {
       rgba(3, 12, 19, 0.9)
     );
 
-  border: 1px solid rgba(75, 169, 218, 0.30);
+  border: 1px solid
+    rgba(75, 169, 218, 0.30);
 
   color: #79b9da;
 
@@ -309,9 +363,14 @@ body {
 
   cursor: pointer;
 
+  -webkit-tap-highlight-color: transparent;
+
   box-shadow:
-    0 0 20px rgba(0, 112, 178, 0.10),
-    inset 0 0 15px rgba(74, 181, 235, 0.035);
+    0 0 20px
+      rgba(0, 112, 178, 0.10),
+
+    inset 0 0 15px
+      rgba(74, 181, 235, 0.035);
 
   transition:
     transform 0.2s ease,
@@ -320,11 +379,15 @@ body {
 }
 
 #settingsBtn:hover {
-  border-color: rgba(85, 190, 242, 0.55);
+  border-color:
+    rgba(85, 190, 242, 0.55);
 
   box-shadow:
-    0 0 25px rgba(0, 139, 211, 0.18),
-    inset 0 0 18px rgba(74, 181, 235, 0.05);
+    0 0 25px
+      rgba(0, 139, 211, 0.18),
+
+    inset 0 0 18px
+      rgba(74, 181, 235, 0.05);
 }
 
 #settingsBtn:active {
@@ -340,7 +403,8 @@ body {
 
   border-radius: 18px;
 
-  border: 1px solid rgba(64, 164, 215, 0.08);
+  border: 1px solid
+    rgba(64, 164, 215, 0.08);
 
   pointer-events: none;
 }
@@ -366,7 +430,9 @@ body {
 
   padding: 9px 15px;
 
-  border: 1px solid rgba(82, 183, 232, 0.28);
+  border:
+    1px solid
+    rgba(82, 183, 232, 0.28);
 
   border-radius: 10px;
 
@@ -380,12 +446,15 @@ body {
   text-decoration: none;
 
   box-shadow:
-    0 0 18px rgba(0, 119, 183, 0.10);
+    0 0 18px
+      rgba(0, 119, 183, 0.10);
 
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
     transform 0.2s ease;
+
+  -webkit-tap-highlight-color: transparent;
 }
 
 #linkArea a:active {
@@ -401,6 +470,13 @@ body {
 
   inset: 0;
 
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
   background:
     radial-gradient(
       circle at center,
@@ -409,13 +485,8 @@ body {
     ),
     rgba(0, 3, 6, 0.78);
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 20px;
-
   backdrop-filter: blur(10px);
+
   -webkit-backdrop-filter: blur(10px);
 
   z-index: 100;
@@ -425,12 +496,15 @@ body {
   display: none;
 }
 
-/* Boîte */
+/* =========================================================
+   BOÎTE RÉGLAGES
+   ========================================================= */
 
 .settingsBox {
   position: relative;
 
   width: 85%;
+
   max-width: 360px;
 
   padding: 25px;
@@ -444,16 +518,19 @@ body {
       rgba(4, 12, 20, 0.98)
     );
 
-  border: 1px solid rgba(74, 180, 232, 0.30);
+  border:
+    1px solid
+    rgba(74, 180, 232, 0.30);
 
   border-radius: 20px;
 
   box-shadow:
-    0 0 50px rgba(0, 102, 160, 0.20),
-    inset 0 0 25px rgba(70, 178, 230, 0.035);
-}
+    0 0 50px
+      rgba(0, 102, 160, 0.20),
 
-/* Petite bordure intérieure */
+    inset 0 0 25px
+      rgba(70, 178, 230, 0.035);
+}
 
 .settingsBox::before {
   content: "";
@@ -462,14 +539,14 @@ body {
 
   inset: 7px;
 
-  border: 1px solid rgba(73, 176, 226, 0.07);
+  border:
+    1px solid
+    rgba(73, 176, 226, 0.07);
 
   border-radius: 14px;
 
   pointer-events: none;
 }
-
-/* Titre */
 
 .settingsBox h2 {
   font-size: 17px;
@@ -481,24 +558,21 @@ body {
   letter-spacing: 1.5px;
 
   text-shadow:
-    0 0 12px rgba(78, 190, 240, 0.25);
+    0 0 12px
+      rgba(78, 190, 240, 0.25);
 }
 
-/* Label */
-
 .settingsBox label {
-  font-size: 11px;
-
-  color: #70a9c7;
-
   display: block;
 
   margin-bottom: 8px;
 
+  color: #70a9c7;
+
+  font-size: 11px;
+
   letter-spacing: 1px;
 }
-
-/* Input */
 
 .settingsBox input {
   width: 100%;
@@ -507,13 +581,16 @@ body {
 
   padding: 0 13px;
 
-  border-radius: 10px;
+  border:
+    1px solid
+    rgba(67, 168, 219, 0.25);
 
-  border: 1px solid rgba(67, 168, 219, 0.25);
+  border-radius: 10px;
 
   outline: none;
 
-  background: rgba(2, 9, 15, 0.9);
+  background:
+    rgba(2, 9, 15, 0.9);
 
   color: #d8f3ff;
 
@@ -527,13 +604,13 @@ body {
 }
 
 .settingsBox input:focus {
-  border-color: rgba(82, 191, 240, 0.65);
+  border-color:
+    rgba(82, 191, 240, 0.65);
 
   box-shadow:
-    0 0 15px rgba(0, 137, 204, 0.14);
+    0 0 15px
+      rgba(0, 137, 204, 0.14);
 }
-
-/* Texte explicatif */
 
 .hint {
   font-size: 11px;
@@ -545,7 +622,9 @@ body {
   margin-bottom: 19px;
 }
 
-/* Boutons */
+/* =========================================================
+   BOUTONS RÉGLAGES
+   ========================================================= */
 
 .settingsActions {
   display: flex;
@@ -560,9 +639,11 @@ body {
 
   padding: 0;
 
-  border-radius: 10px;
+  border:
+    1px solid
+    rgba(74, 176, 225, 0.25);
 
-  border: 1px solid rgba(74, 176, 225, 0.25);
+  border-radius: 10px;
 
   background:
     rgba(6, 25, 37, 0.7);
@@ -577,6 +658,8 @@ body {
 
   cursor: pointer;
 
+  -webkit-tap-highlight-color: transparent;
+
   transition:
     transform 0.15s ease,
     border-color 0.2s ease,
@@ -588,7 +671,8 @@ body {
 }
 
 #saveKeyBtn {
-  border-color: rgba(83, 181, 236, 0.58) !important;
+  border-color:
+    rgba(83, 181, 236, 0.58) !important;
 
   color: #bdeaff !important;
 
@@ -596,7 +680,8 @@ body {
     rgba(23, 110, 153, 0.18) !important;
 
   box-shadow:
-    0 0 15px rgba(0, 134, 202, 0.08);
+    0 0 15px
+      rgba(0, 134, 202, 0.08);
 }
 
 /* =========================================================
@@ -626,14 +711,13 @@ body {
     rgba(0, 3, 7, 0.55);
 
   backdrop-filter: blur(4px);
+
   -webkit-backdrop-filter: blur(4px);
 }
 
 #diceOverlay.hidden {
   display: none;
 }
-
-/* Dé */
 
 #diceFace {
   position: relative;
@@ -653,14 +737,19 @@ body {
       #04121d
     );
 
-  border: 1px solid rgba(88, 194, 246, 0.65);
+  border:
+    1px solid
+    rgba(88, 194, 246, 0.65);
 
   border-radius: 20px;
 
   display: grid;
 
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  grid-template-rows:
+    repeat(3, 1fr);
 
   padding: 16px;
 
@@ -670,12 +759,19 @@ body {
   justify-items: center;
 
   box-shadow:
-    0 0 25px rgba(0, 151, 221, 0.30),
-    0 0 70px rgba(0, 104, 168, 0.12),
-    inset 0 0 25px rgba(67, 188, 238, 0.08);
+    0 0 25px
+      rgba(0, 151, 221, 0.30),
+
+    0 0 70px
+      rgba(0, 104, 168, 0.12),
+
+    inset 0 0 25px
+      rgba(67, 188, 238, 0.08);
 }
 
-/* Animation du dé */
+/* =========================================================
+   ANIMATION DÉ
+   ========================================================= */
 
 #diceFace.rolling {
   animation:
@@ -685,23 +781,33 @@ body {
 
 @keyframes diceShake {
   0% {
-    transform: rotate(0deg) scale(1);
+    transform:
+      rotate(0deg)
+      scale(1);
   }
 
   25% {
-    transform: rotate(5deg) scale(1.02);
+    transform:
+      rotate(5deg)
+      scale(1.02);
   }
 
   50% {
-    transform: rotate(0deg) scale(1.04);
+    transform:
+      rotate(0deg)
+      scale(1.04);
   }
 
   75% {
-    transform: rotate(-5deg) scale(1.02);
+    transform:
+      rotate(-5deg)
+      scale(1.02);
   }
 
   100% {
-    transform: rotate(0deg) scale(1);
+    transform:
+      rotate(0deg)
+      scale(1);
   }
 }
 
@@ -709,20 +815,32 @@ body {
   0%,
   100% {
     box-shadow:
-      0 0 25px rgba(0, 151, 221, 0.30),
-      0 0 70px rgba(0, 104, 168, 0.12),
-      inset 0 0 25px rgba(67, 188, 238, 0.08);
+      0 0 25px
+        rgba(0, 151, 221, 0.30),
+
+      0 0 70px
+        rgba(0, 104, 168, 0.12),
+
+      inset 0 0 25px
+        rgba(67, 188, 238, 0.08);
   }
 
   50% {
     box-shadow:
-      0 0 40px rgba(0, 171, 245, 0.55),
-      0 0 90px rgba(0, 121, 193, 0.20),
-      inset 0 0 35px rgba(67, 188, 238, 0.13);
+      0 0 40px
+        rgba(0, 171, 245, 0.55),
+
+      0 0 90px
+        rgba(0, 121, 193, 0.20),
+
+      inset 0 0 35px
+        rgba(67, 188, 238, 0.13);
   }
 }
 
-/* Points du dé */
+/* =========================================================
+   POINTS DU DÉ
+   ========================================================= */
 
 .pip {
   width: 14px;
@@ -737,14 +855,20 @@ body {
   background: #9bdeff;
 
   box-shadow:
-    0 0 7px rgba(98, 201, 255, 0.85),
-    0 0 14px rgba(40, 160, 225, 0.35);
+    0 0 7px
+      rgba(98, 201, 255, 0.85),
+
+    0 0 14px
+      rgba(40, 160, 225, 0.35);
 }
 
-/* Numéro */
+/* =========================================================
+   NUMÉRO DU DÉ
+   ========================================================= */
 
 #diceNumberText {
   grid-column: 1 / 4;
+
   grid-row: 1 / 4;
 
   color: #c8efff;
@@ -754,11 +878,12 @@ body {
   font-weight: 700;
 
   text-shadow:
-    0 0 15px rgba(84, 197, 250, 0.45);
+    0 0 15px
+      rgba(84, 197, 250, 0.45);
 }
 
 /* =========================================================
-   ADAPTATION TÉLÉPHONE
+   PETITS ÉCRANS
    ========================================================= */
 
 @media (max-width: 700px) {
@@ -781,7 +906,7 @@ body {
 }
 
 /* =========================================================
-   PETITS ÉCRANS EN HAUTEUR
+   ÉCRANS PEU HAUTS
    ========================================================= */
 
 @media (max-height: 700px) {
@@ -826,7 +951,7 @@ body {
 }
 
 /* =========================================================
-   RÉDUCTION DES ANIMATIONS SI LE TÉLÉPHONE LE DEMANDE
+   ACCESSIBILITÉ
    ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
@@ -835,6 +960,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+
     animation-iteration-count: 1 !important;
   }
 }
