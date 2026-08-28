@@ -54,9 +54,28 @@ function initCommands(getCity) {
     return `Rappel programmé dans ${minutes} minute${minutes > 1 ? 's' : ''}.`;
   }
 
+  function flipCoin() {
+    const result = Math.random() < 0.5 ? 'Pile' : 'Face';
+    return `${result} !`;
+  }
+
+  function rollDice(faces) {
+    const n = faces || 6;
+    const result = Math.floor(Math.random() * n) + 1;
+    return `J'ai lancé un dé à ${n} faces... ${result} !`;
+  }
+
   async function handle(text) {
     const t = text.toLowerCase();
 
+    if (t.includes('pile ou face') || t.includes('pile')) {
+      return flipCoin();
+    }
+    if (t.includes('dé') || t.includes('de ')) {
+      const facesMatch = t.match(/(\d+)\s*face/);
+      const faces = facesMatch ? parseInt(facesMatch[1], 10) : 6;
+      return rollDice(faces);
+    }
     if (t.includes('météo') || t.includes('meteo') || t.includes('temps qu\'il fait') || t.includes('temps fait')) {
       return await getWeather();
     }
