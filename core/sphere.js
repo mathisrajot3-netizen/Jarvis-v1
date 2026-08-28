@@ -6,6 +6,10 @@ function initSphere(canvasId) {
   let H = 0;
   let dpr = 1;
 
+  /* =====================================================
+     REDIMENSIONNEMENT
+     ===================================================== */
+
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -19,7 +23,9 @@ function initSphere(canvasId) {
   }
 
   resize();
+
   window.addEventListener("resize", resize);
+
 
   /* =====================================================
      PARTICULES
@@ -29,43 +35,65 @@ function initSphere(canvasId) {
   const stars = [];
 
   for (let i = 0; i < N; i++) {
-    const theta = Math.acos(2 * Math.random() - 1);
-    const phi = Math.random() * Math.PI * 2;
+
+    const theta =
+      Math.acos(2 * Math.random() - 1);
+
+    const phi =
+      Math.random() * Math.PI * 2;
 
     stars.push({
+
       theta,
       phi,
 
-      speed: 0.0015 + Math.random() * 0.004,
+      speed:
+        0.0015 +
+        Math.random() * 0.004,
 
-      offset: Math.random() * Math.PI * 2,
+      offset:
+        Math.random() * Math.PI * 2,
 
-      baseSize: 0.6 + Math.random() * 2.4,
+      baseSize:
+        0.6 +
+        Math.random() * 2.4,
 
-      brightness: 0.5 + Math.random() * 0.5
+      brightness:
+        0.5 +
+        Math.random() * 0.5
     });
   }
+
 
   /* =====================================================
      ÉTAT
      ===================================================== */
 
   let talking = false;
+
   let t = 0;
 
+
   /* =====================================================
-     UTILITAIRES
+     AURA
      ===================================================== */
 
-  function glowCircle(x, y, radius, alpha) {
-    const gradient = ctx.createRadialGradient(
-      x,
-      y,
-      radius * 0.05,
-      x,
-      y,
-      radius
-    );
+  function glowCircle(
+    x,
+    y,
+    radius,
+    alpha
+  ) {
+
+    const gradient =
+      ctx.createRadialGradient(
+        x,
+        y,
+        radius * 0.05,
+        x,
+        y,
+        radius
+      );
 
     gradient.addColorStop(
       0,
@@ -73,7 +101,7 @@ function initSphere(canvasId) {
     );
 
     gradient.addColorStop(
-      0.45,
+      0.4,
       `rgba(30,145,220,${alpha * 0.35})`
     );
 
@@ -85,9 +113,22 @@ function initSphere(canvasId) {
     ctx.fillStyle = gradient;
 
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+    ctx.arc(
+      x,
+      y,
+      radius,
+      0,
+      Math.PI * 2
+    );
+
     ctx.fill();
   }
+
+
+  /* =====================================================
+     ANNEAUX
+     ===================================================== */
 
   function drawRing(
     cx,
@@ -99,9 +140,14 @@ function initSphere(canvasId) {
     width,
     alpha
   ) {
+
     ctx.save();
 
-    ctx.translate(cx, cy);
+    ctx.translate(
+      cx,
+      cy
+    );
+
     ctx.rotate(rotation);
 
     ctx.beginPath();
@@ -117,9 +163,12 @@ function initSphere(canvasId) {
     ctx.strokeStyle =
       `rgba(76,190,255,${alpha})`;
 
-    ctx.lineWidth = width;
+    ctx.lineWidth =
+      width;
 
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur =
+      12;
+
     ctx.shadowColor =
       "rgba(35,170,245,0.45)";
 
@@ -128,14 +177,32 @@ function initSphere(canvasId) {
     ctx.restore();
   }
 
-  function drawTickRing(cx, cy, radius) {
+
+  /* =====================================================
+     PETITES GRADUATIONS
+     ===================================================== */
+
+  function drawTickRing(
+    cx,
+    cy,
+    radius
+  ) {
+
     ctx.save();
 
-    ctx.translate(cx, cy);
+    ctx.translate(
+      cx,
+      cy
+    );
 
     const count = 48;
 
-    for (let i = 0; i < count; i++) {
+    for (
+      let i = 0;
+      i < count;
+      i++
+    ) {
+
       const angle =
         (Math.PI * 2 / count) * i;
 
@@ -143,20 +210,39 @@ function initSphere(canvasId) {
         i % 6 === 0;
 
       const inner =
-        radius - (major ? 9 : 5);
+        radius -
+        (major ? 9 : 5);
 
-      const outer = radius;
+      const outer =
+        radius;
 
-      const x1 = Math.cos(angle) * inner;
-      const y1 = Math.sin(angle) * inner;
+      const x1 =
+        Math.cos(angle) *
+        inner;
 
-      const x2 = Math.cos(angle) * outer;
-      const y2 = Math.sin(angle) * outer;
+      const y1 =
+        Math.sin(angle) *
+        inner;
+
+      const x2 =
+        Math.cos(angle) *
+        outer;
+
+      const y2 =
+        Math.sin(angle) *
+        outer;
 
       ctx.beginPath();
 
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(
+        x1,
+        y1
+      );
+
+      ctx.lineTo(
+        x2,
+        y2
+      );
 
       ctx.strokeStyle =
         major
@@ -172,46 +258,61 @@ function initSphere(canvasId) {
     ctx.restore();
   }
 
+
   /* =====================================================
-     CERCLE CENTRAL
+     NOYAU
      ===================================================== */
 
-  function drawCore(cx, cy, R) {
+  function drawCore(
+    cx,
+    cy,
+    R
+  ) {
+
     const pulse =
-      Math.sin(t * 0.045) * 0.5 + 0.5;
+      Math.sin(t * 0.045) *
+      0.5 +
+      0.5;
 
     const talkingPulse =
       talking
-        ? Math.sin(t * 0.18) * 0.5 + 0.5
+        ? Math.sin(t * 0.18) *
+            0.5 +
+          0.5
         : 0;
 
+
     const coreRadius =
-      R * (
+      R *
+      (
         0.92 +
-        talkingPulse * 0.055
+        talkingPulse *
+        0.055
       );
 
-    /*
-      Aura extérieure
-    */
+
+    /* Aura */
 
     glowCircle(
       cx,
       cy,
-      coreRadius * 1.65,
-      talking ? 0.18 : 0.10
+      coreRadius * 1.55,
+      talking
+        ? 0.18
+        : 0.09
     );
 
     glowCircle(
       cx,
       cy,
-      coreRadius * 1.25,
-      talking ? 0.14 : 0.07
+      coreRadius * 1.20,
+      talking
+        ? 0.13
+        : 0.06
     );
 
-    /*
-      Cercle très léger
-    */
+
+    /* Cercle */
 
     ctx.beginPath();
 
@@ -237,11 +338,10 @@ function initSphere(canvasId) {
 
     ctx.stroke();
 
-    /*
-      Petit noyau lumineux
-    */
 
-    const coreGradient =
+    /* Dégradé intérieur */
+
+    const gradient =
       ctx.createRadialGradient(
         cx,
         cy,
@@ -251,24 +351,25 @@ function initSphere(canvasId) {
         coreRadius
       );
 
-    coreGradient.addColorStop(
+    gradient.addColorStop(
       0,
       talking
         ? "rgba(125,225,255,0.13)"
         : "rgba(100,205,255,0.08)"
     );
 
-    coreGradient.addColorStop(
+    gradient.addColorStop(
       0.55,
       "rgba(30,130,200,0.035)"
     );
 
-    coreGradient.addColorStop(
+    gradient.addColorStop(
       1,
       "rgba(0,0,0,0)"
     );
 
-    ctx.fillStyle = coreGradient;
+    ctx.fillStyle =
+      gradient;
 
     ctx.beginPath();
 
@@ -282,9 +383,8 @@ function initSphere(canvasId) {
 
     ctx.fill();
 
-    /*
-      Petit point central
-    */
+
+    /* Point central */
 
     const centerSize =
       2.2 +
@@ -307,7 +407,9 @@ function initSphere(canvasId) {
         : "rgba(130,215,255,0.75)";
 
     ctx.shadowBlur =
-      talking ? 25 : 14;
+      talking
+        ? 25
+        : 14;
 
     ctx.shadowColor =
       "rgba(50,190,255,0.9)";
@@ -317,30 +419,44 @@ function initSphere(canvasId) {
     ctx.shadowBlur = 0;
   }
 
+
   /* =====================================================
      TEXTE JARVIS
      ===================================================== */
 
-  function drawLabel(cx, cy, R) {
+  function drawLabel(
+    cx,
+    cy,
+    R
+  ) {
+
     const labelY =
-      cy + R * 1.42;
+      cy +
+      R *
+      1.42;
 
     ctx.save();
 
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textAlign =
+      "center";
 
-    /*
-      JARVIS
-    */
+    ctx.textBaseline =
+      "middle";
+
+
+    /* JARVIS */
 
     ctx.font =
-      `500 ${Math.max(13, R * 0.105)}px Arial`;
+      `500 ${Math.max(
+        13,
+        R * 0.105
+      )}px Arial`;
 
     ctx.fillStyle =
       "rgba(190,235,255,0.92)";
 
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur =
+      14;
 
     ctx.shadowColor =
       "rgba(50,180,240,0.55)";
@@ -351,35 +467,122 @@ function initSphere(canvasId) {
       labelY
     );
 
-    /*
-      Sous-titre
-    */
+
+    /* Sous-titre */
 
     ctx.shadowBlur = 0;
 
     ctx.font =
-      `600 ${Math.max(6, R * 0.034)}px Arial`;
+      `600 ${Math.max(
+        6,
+        R * 0.034
+      )}px Arial`;
 
     ctx.fillStyle =
       "rgba(72,133,165,0.85)";
 
-    ctx.letterSpacing = "2px";
-
     ctx.fillText(
       "PERSONAL ASSISTANT",
       cx,
-      labelY + R * 0.095
+      labelY +
+      R *
+      0.095
     );
 
     ctx.restore();
   }
+
+
+  /* =====================================================
+     PETITS INDICATEURS LATÉRAUX
+     ===================================================== */
+
+  function drawSideIndicators(
+    cx,
+    cy,
+    R
+  ) {
+
+    ctx.save();
+
+    ctx.font =
+      `${Math.max(
+        6,
+        R * 0.032
+      )}px Arial`;
+
+    ctx.textBaseline =
+      "middle";
+
+    ctx.fillStyle =
+      "rgba(75,155,195,0.60)";
+
+
+    /* Gauche */
+
+    ctx.textAlign =
+      "right";
+
+    ctx.fillText(
+      "◀",
+      cx -
+        R *
+        1.38,
+      cy -
+        R *
+        0.32
+    );
+
+    ctx.fillText(
+      "◀",
+      cx -
+        R *
+        1.38,
+      cy +
+        R *
+        0.32
+    );
+
+
+    /* Droite */
+
+    ctx.textAlign =
+      "left";
+
+    ctx.fillText(
+      "▶",
+      cx +
+        R *
+        1.38,
+      cy -
+        R *
+        0.32
+    );
+
+    ctx.fillText(
+      "▶",
+      cx +
+        R *
+        1.38,
+      cy +
+        R *
+        0.32
+    );
+
+    ctx.restore();
+  }
+
 
   /* =====================================================
      DESSIN PRINCIPAL
      ===================================================== */
 
   function draw() {
+
     t++;
+
+
+    /* Nettoyage */
 
     ctx.clearRect(
       0,
@@ -388,39 +591,66 @@ function initSphere(canvasId) {
       H
     );
 
-    const cx = W / 2;
-    const cy = H * 0.43;
-
-    const R =
-      Math.min(W, H) * 0.35;
 
     /*
-      ===================================================
-      AURA
-      ===================================================
+      Centre légèrement au-dessus
+      du milieu pour laisser la place
+      au nom JARVIS.
     */
+
+    const cx =
+      W / 2;
+
+    const cy =
+      H * 0.41;
+
+
+    /*
+      Rayon principal.
+
+      IMPORTANT :
+      les anneaux restent entièrement
+      dans le canvas.
+    */
+
+    const R =
+      Math.min(
+        W,
+        H
+      ) *
+      0.245;
+
+
+    /* =================================================
+       AURA GLOBALE
+       ================================================= */
 
     glowCircle(
       cx,
       cy,
-      R * 1.85,
-      talking ? 0.10 : 0.055
+      R * 1.75,
+      talking
+        ? 0.10
+        : 0.05
     );
 
-    /*
-      ===================================================
-      ANNEAUX EXTÉRIEURS
-      ===================================================
-    */
+
+    /* =================================================
+       ANNEAU EXTÉRIEUR
+       ================================================= */
 
     const rotation1 =
-      t * 0.0022;
+      t *
+      0.0022;
 
     const rotation2 =
-      -t * 0.0015;
+      -t *
+      0.0015;
 
     const rotation3 =
-      t * 0.0009;
+      t *
+      0.0009;
+
 
     drawRing(
       cx,
@@ -438,11 +668,16 @@ function initSphere(canvasId) {
       cy,
       R * 1.43,
       rotation1,
-      3.2,
+      3.20,
       5.35,
       1,
       0.20
     );
+
+
+    /* =================================================
+       ANNEAU INTERMÉDIAIRE
+       ================================================= */
 
     drawRing(
       cx,
@@ -460,28 +695,32 @@ function initSphere(canvasId) {
       cy,
       R * 1.30,
       rotation2,
-      2.4,
-      4.2,
+      2.40,
+      4.20,
       1,
       0.18
     );
+
+
+    /* =================================================
+       ANNEAU INTERNE
+       ================================================= */
 
     drawRing(
       cx,
       cy,
       R * 1.18,
       rotation3,
-      0.4,
-      2.7,
+      0.40,
+      2.70,
       0.7,
       0.20
     );
 
-    /*
-      ===================================================
-      TICKS
-      ===================================================
-    */
+
+    /* =================================================
+       GRADUATIONS
+       ================================================= */
 
     drawTickRing(
       cx,
@@ -489,77 +728,115 @@ function initSphere(canvasId) {
       R * 1.53
     );
 
-    /*
-      ===================================================
-      SPHÈRE DE PARTICULES
-      ===================================================
-    */
+
+    /* =================================================
+       PARTICULES
+       ================================================= */
 
     const amp =
       talking
         ? R * 0.13
         : R * 0.025;
 
-    for (let i = 0; i < N; i++) {
-      const s = stars[i];
+
+    for (
+      let i = 0;
+      i < N;
+      i++
+    ) {
+
+      const s =
+        stars[i];
+
 
       const wob =
         Math.sin(
-          t * s.speed +
+          t *
+            s.speed +
           s.offset
-        ) * amp;
+        ) *
+        amp;
+
 
       const r =
-        R + wob;
+        R +
+        wob;
+
 
       const angle =
         s.phi +
-        t * 0.0009;
+        t *
+        0.0009;
+
 
       const x =
         r *
-        Math.sin(s.theta) *
+        Math.sin(
+          s.theta
+        ) *
         Math.cos(angle);
+
 
       const y =
         r *
-        Math.cos(s.theta);
+        Math.cos(
+          s.theta
+        );
+
 
       const z =
         r *
-        Math.sin(s.theta) *
+        Math.sin(
+          s.theta
+        ) *
         Math.sin(angle);
 
+
       const scale =
-        (z + R * 1.5) /
+        (
+          z +
+          R * 1.5
+        ) /
         (R * 2);
 
+
       const px =
-        cx + x;
+        cx +
+        x;
 
       const py =
-        cy + y;
+        cy +
+        y;
+
 
       const size =
         Math.max(
           0.4,
-          s.baseSize * scale
+          s.baseSize *
+          scale
         );
+
 
       let alpha =
         Math.max(
           0.10,
           scale
-        ) * s.brightness;
+        ) *
+        s.brightness;
+
 
       if (talking) {
+
         alpha *=
           0.85 +
           Math.sin(
-            t * 0.08 +
+            t *
+              0.08 +
             s.offset
-          ) * 0.25;
+          ) *
+          0.25;
       }
+
 
       ctx.beginPath();
 
@@ -571,25 +848,36 @@ function initSphere(canvasId) {
         Math.PI * 2
       );
 
+
       ctx.fillStyle =
-        `rgba(120,205,255,${alpha})`;
+        `rgba(
+          120,
+          205,
+          255,
+          ${alpha}
+        )`;
+
 
       ctx.shadowBlur =
-        size > 1.5 ? 5 : 0;
+        size > 1.5
+          ? 5
+          : 0;
+
 
       ctx.shadowColor =
         "rgba(60,185,255,0.55)";
 
+
       ctx.fill();
     }
 
+
     ctx.shadowBlur = 0;
 
-    /*
-      ===================================================
-      NOYAU
-      ===================================================
-    */
+
+    /* =================================================
+       NOYAU
+       ================================================= */
 
     drawCore(
       cx,
@@ -597,11 +885,21 @@ function initSphere(canvasId) {
       R
     );
 
-    /*
-      ===================================================
-      LABEL
-      ===================================================
-    */
+
+    /* =================================================
+       INDICATEURS
+       ================================================= */
+
+    drawSideIndicators(
+      cx,
+      cy,
+      R
+    );
+
+
+    /* =================================================
+       NOM JARVIS
+       ================================================= */
 
     drawLabel(
       cx,
@@ -609,18 +907,36 @@ function initSphere(canvasId) {
       R
     );
 
-    requestAnimationFrame(draw);
+
+    /* =================================================
+       BOUCLE
+       ================================================= */
+
+    requestAnimationFrame(
+      draw
+    );
   }
+
+
+  /* =====================================================
+     LANCEMENT
+     ===================================================== */
 
   draw();
 
+
   /* =====================================================
-     API UTILISÉE PAR LE RESTE DE JARVIS
+     API POUR LE RESTE DE JARVIS
      ===================================================== */
 
   return {
+
     setTalking: (val) => {
-      talking = !!val;
+
+      talking =
+        !!val;
+
     }
+
   };
 }
