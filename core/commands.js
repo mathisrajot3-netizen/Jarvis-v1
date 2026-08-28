@@ -1,6 +1,16 @@
 function initCommands(getCity, hooks) {
 
   // ============================================================
+  // VARIABLES DES MINUTEURS / RAPPELS
+  // ============================================================
+
+  let activeTimer = null;
+  let activeTimerInfo = null;
+
+  const reminders = [];
+
+
+  // ============================================================
   // MÉTÉO
   // ============================================================
 
@@ -45,6 +55,7 @@ function initCommands(getCity, hooks) {
     if (code <= 77) return "neigeux";
     if (code <= 82) return "averses";
     if (code <= 99) return "orageux";
+
     return "temps variable";
   }
 
@@ -75,71 +86,11 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // RAPPELS
-  // ============================================================
-
-  function setReminder(amount, unit, text) {
-
-    let delay;
-
-    if (unit && unit.startsWith('seconde')) {
-      delay = amount * 1000;
-    } else {
-      delay = amount * 60 * 1000;
-    }
-
-    // Demande l'autorisation de notification si nécessaire
-    if (
-      typeof Notification !== 'undefined' &&
-      Notification.permission === 'default'
-    ) {
-      Notification.requestPermission().catch(() => {});
-    }
-
-    setTimeout(() => {
-
-      const message = text || 'Rappel !';
-
-      // Notification du navigateur
-      if (
-        typeof Notification !== 'undefined' &&
-        Notification.permission === 'granted'
-      ) {
-        try {
-          new Notification('Jarvis - Rappel', {
-            body: message
-          });
-
-          return;
-        } catch (e) {}
-      }
-
-      // Si les notifications ne fonctionnent pas,
-      // on utilise une alerte comme solution de secours.
-      try {
-        alert('🔔 Jarvis : ' + message);
-      } catch (e) {}
-
-    }, delay);
-
-
-    const unitText =
-      unit && unit.startsWith('seconde')
-        ? 'seconde'
-        : 'minute';
-
-    return `Très bien. Je te rappellerai dans ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
-  }
-
-
-  // ============================================================
-  // MINUTEUR
+  // SON DU MINUTEUR
   // ============================================================
 
   function playBeep(times) {
-
     try {
-
       const AudioCtx =
         window.AudioContext ||
         window.webkitAudioContext;
@@ -148,50 +99,76 @@ function initCommands(getCity, hooks) {
 
       const ctx = new AudioCtx();
 
-      let t0 = ctx.currentTime;
+      let startTime = ctx.currentTime;
 
       for (let i = 0; i < times; i++) {
 
-        const osc = ctx.createOscillator();
+        const oscillator = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        osc.frequency.value = 880;
+        oscillator.frequency.value = 880;
 
-        osc.connect(gain);
+        oscillator.connect(gain);
         gain.connect(ctx.destination);
 
-        gain.gain.setValueAtTime(0.001, t0);
+        gain.gain.setValueAtTime(
+          0.001,
+          startTime
+        );
 
         gain.gain.linearRampToValueAtTime(
           0.3,
-          t0 + 0.02
+          startTime + 0.02
         );
 
         gain.gain.linearRampToValueAtTime(
           0.001,
-          t0 + 0.25
+          startTime + 0.25
         );
 
-        osc.start(t0);
-        osc.stop(t0 + 0.3);
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.3);
 
-        t0 += 0.4;
+        startTime += 0.4;
       }
 
-    } catch (e) {}
+    } catch (e) {
+      // Pas bloquant si le son ne peut pas être joué
+    }
   }
 
 
+  // ============================================================
+  // MINUTEUR
+  // ============================================================
+
   function startTimer(amount, unit) {
+
+    // Si un minuteur existe déjà, on l'annule
+    if (activeTimer !== null) {
+      clearTimeout(activeTimer);
+      activeTimer = null;
+      activeTimerInfo = null;
+    }
 
     const isSeconds =
       unit.toLowerCase().startsWith('seconde');
 
-    const ms = isSeconds
+    const milliseconds = isSeconds
       ? amount * 1000
       : amount * 60 * 1000;
 
-    setTimeout(() => {
+
+    activeTimerInfo = {
+      amount: amount,
+      unit: isSeconds ? 'seconde' : 'minute'
+    };
+
+
+    activeTimer = setTimeout(() => {
+
+      activeTimer = null;
+      activeTimerInfo = null;
 
       playBeep(4);
 
@@ -199,14 +176,144 @@ function initCommands(getCity, hooks) {
         hooks.onTimerEnd();
       }
 
-    }, ms);
+    }, milliseconds);
 
 
-    const unitText = isSeconds
-      ? 'seconde'
-      : 'minute';
+    const unitText =
+      isSeconds ? 'seconde' : 'minute';
+
 
     return `Minuteur lancé pour ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
+  }
+
+
+  function cancelTimer() {
+
+    if (activeTimer === null) {
+      return "Il n'y a aucun minuteur en cours.";
+    }
+
+    clearTimeout(activeTimer);
+
+    activeTimer = null;
+    activeTimerInfo = null;
+
+    return "Minuteur annulé.";
+  }
+
+
+  // ============================================================
+  // RAPPELS
+  // ============================================================
+
+  function requestNotificationPermission() {
+
+    if (
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'default'
+    ) {
+
+      try {
+        Notification.requestPermission().catch(() => {});
+      } catch (e) {}
+    }
+  }
+
+
+  function sendReminderNotification(text) {
+
+    const message = text || 'Rappel !';
+
+
+    if (
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+
+      try {
+
+        new Notification('Jarvis - Rappel', {
+          body: message
+        });
+
+        return;
+      } catch (e) {}
+    }
+
+
+    // Solution de secours
+    try {
+      alert('🔔 Jarvis : ' + message);
+    } catch (e) {}
+  }
+
+
+  function setReminder(amount, unit, text) {
+
+    requestNotificationPermission();
+
+
+    const isSeconds =
+      unit.toLowerCase().startsWith('seconde');
+
+    const milliseconds = isSeconds
+      ? amount * 1000
+      : amount * 60 * 1000;
+
+
+    const reminder = {
+      id: Date.now() + Math.random(),
+      timeout: null,
+      amount: amount,
+      unit: unit,
+      text: text || 'Rappel !'
+    };
+
+
+    reminder.timeout = setTimeout(() => {
+
+      sendReminderNotification(
+        reminder.text
+      );
+
+
+      const index =
+        reminders.indexOf(reminder);
+
+      if (index !== -1) {
+        reminders.splice(index, 1);
+      }
+
+    }, milliseconds);
+
+
+    reminders.push(reminder);
+
+
+    const unitText =
+      isSeconds ? 'seconde' : 'minute';
+
+
+    return `Rappel programmé dans ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
+  }
+
+
+  function cancelReminders() {
+
+    if (reminders.length === 0) {
+      return "Il n'y a aucun rappel en cours.";
+    }
+
+
+    for (const reminder of reminders) {
+      clearTimeout(reminder.timeout);
+    }
+
+
+    reminders.length = 0;
+
+
+    return "Tous les rappels ont été annulés.";
   }
 
 
@@ -236,22 +343,27 @@ function initCommands(getCity, hooks) {
     const result =
       Math.floor(Math.random() * n) + 1;
 
+
     if (hooks && hooks.onDiceRoll) {
       await hooks.onDiceRoll(n, result);
     }
+
 
     return `${result} !`;
   }
 
 
   // ============================================================
-  // CALCULATEUR
+  // NOMBRES FRANÇAIS
   // ============================================================
 
   const numberWords = {
+
     zero: 0,
+
     un: 1,
     une: 1,
+
     deux: 2,
     trois: 3,
     quatre: 4,
@@ -261,72 +373,86 @@ function initCommands(getCity, hooks) {
     huit: 8,
     neuf: 9,
     dix: 10,
+
     onze: 11,
     douze: 12,
     treize: 13,
     quatorze: 14,
     quinze: 15,
     seize: 16,
+
     dixsept: 17,
     dixhuit: 18,
     dixneuf: 19,
+
     vingt: 20,
     trente: 30,
     quarante: 40,
     cinquante: 50,
     soixante: 60,
+
     cent: 100,
     mille: 1000
   };
 
 
+  // ============================================================
+  // CONVERSION NOMBRES FRANÇAIS
+  // ============================================================
+
   function normalizeNumberWords(text) {
 
-    let t = text
+    return text
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-    t = t
-      .replace(/-/g, ' ')
-      .replace(/\bvingt et un\b/g, 'vingt un')
-      .replace(/\btrente et un\b/g, 'trente un')
-      .replace(/\bquarante et un\b/g, 'quarante un')
-      .replace(/\bcinquante et un\b/g, 'cinquante un')
-      .replace(/\bsoixante et un\b/g, 'soixante un')
-      .replace(/\bsoixante dix\b/g, 'soixante dix')
-      .replace(/\bquatre vingt\b/g, 'quatre vingt');
-
-    return t;
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/-/g, ' ');
   }
 
 
   function frenchNumberToValue(text) {
 
-    let t = normalizeNumberWords(text);
+    const normalized =
+      normalizeNumberWords(text);
 
-    if (/^\d+(?:[.,]\d+)?$/.test(t)) {
-      return parseFloat(t.replace(',', '.'));
+
+    if (
+      /^\d+(?:[.,]\d+)?$/.test(normalized)
+    ) {
+
+      return parseFloat(
+        normalized.replace(',', '.')
+      );
     }
 
-    const tokens = t
-      .replace(/\bet\b/g, ' ')
-      .split(/\s+/)
-      .filter(Boolean);
 
-    if (!tokens.length) return null;
+    const tokens =
+      normalized
+        .replace(/\bet\b/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+
+
+    if (!tokens.length) {
+      return null;
+    }
+
 
     let total = 0;
     let current = 0;
     let found = false;
 
+
     for (const token of tokens) {
 
       if (token === 'million') {
 
-        if (current === 0) current = 1;
+        if (current === 0) {
+          current = 1;
+        }
 
         total += current * 1000000;
+
         current = 0;
         found = true;
 
@@ -336,9 +462,12 @@ function initCommands(getCity, hooks) {
 
       if (token === 'milliard') {
 
-        if (current === 0) current = 1;
+        if (current === 0) {
+          current = 1;
+        }
 
         total += current * 1000000000;
+
         current = 0;
         found = true;
 
@@ -346,21 +475,30 @@ function initCommands(getCity, hooks) {
       }
 
 
-      if (numberWords[token] !== undefined) {
+      if (
+        numberWords[token] !== undefined
+      ) {
 
-        const value = numberWords[token];
+        const value =
+          numberWords[token];
+
 
         if (value === 100) {
 
-          if (current === 0) current = 1;
+          if (current === 0) {
+            current = 1;
+          }
 
           current *= 100;
 
         } else if (value === 1000) {
 
-          if (current === 0) current = 1;
+          if (current === 0) {
+            current = 1;
+          }
 
           total += current * 1000;
+
           current = 0;
 
         } else {
@@ -368,15 +506,21 @@ function initCommands(getCity, hooks) {
           current += value;
         }
 
+
         found = true;
 
         continue;
       }
 
+
       return null;
     }
 
-    if (!found) return null;
+
+    if (!found) {
+      return null;
+    }
+
 
     return total + current;
   }
@@ -384,9 +528,13 @@ function initCommands(getCity, hooks) {
 
   function replaceFrenchNumbers(text) {
 
-    let t = normalizeNumberWords(text);
+    const normalized =
+      normalizeNumberWords(text);
 
-    const words = t.split(/\s+/);
+
+    const words =
+      normalized.split(/\s+/);
+
 
     const output = [];
 
@@ -395,16 +543,30 @@ function initCommands(getCity, hooks) {
 
     function flushBuffer() {
 
-      if (!buffer.length) return;
+      if (!buffer.length) {
+        return;
+      }
+
 
       const value =
-        frenchNumberToValue(buffer.join(' '));
+        frenchNumberToValue(
+          buffer.join(' ')
+        );
+
 
       if (value !== null) {
-        output.push(String(value));
+
+        output.push(
+          String(value)
+        );
+
       } else {
-        output.push(...buffer);
+
+        output.push(
+          ...buffer
+        );
       }
+
 
       buffer = [];
     }
@@ -415,10 +577,12 @@ function initCommands(getCity, hooks) {
       const clean =
         word.replace(/[.,!?]/g, '');
 
+
       const isNumberWord =
         numberWords[clean] !== undefined ||
         clean === 'million' ||
         clean === 'milliard';
+
 
       if (isNumberWord) {
 
@@ -427,6 +591,7 @@ function initCommands(getCity, hooks) {
       } else {
 
         flushBuffer();
+
         output.push(word);
       }
     }
@@ -434,33 +599,46 @@ function initCommands(getCity, hooks) {
 
     flushBuffer();
 
+
     return output.join(' ');
   }
 
 
+  // ============================================================
+  // NETTOYAGE CALCUL
+  // ============================================================
+
   function cleanCalculationText(text) {
 
-    let t = text
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+    let t =
+      text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
 
 
     // Expressions inutiles
 
     t = t
+
       .replace(/\bcombien font\b/g, '')
       .replace(/\bcombien fait\b/g, '')
       .replace(/\bcombien fais\b/g, '')
-      .replace(/\bcalcule\b/g, '')
-      .replace(/\bcalcul\b/g, '')
-      .replace(/\bfais le calcul de\b/g, '')
+
       .replace(/\bcalcule moi\b/g, '')
       .replace(/\bcalcule-moi\b/g, '')
+      .replace(/\bcalcule\b/g, '')
+
+      .replace(/\bcalcul\b/g, '')
+
+      .replace(/\bfais le calcul de\b/g, '')
+
       .replace(/\bpeux tu calculer\b/g, '')
       .replace(/\bpeut tu calculer\b/g, '')
+
       .replace(/\bça fait\b/g, '')
-      .replace(/\bfait\b/g, '')
+      .replace(/\bca fait\b/g, '')
+
       .replace(/\bs'il te plait\b/g, '')
       .replace(/\bs'il te plaît\b/g, '');
 
@@ -468,8 +646,8 @@ function initCommands(getCity, hooks) {
     // Multiplication
 
     t = t
-      .replace(/\bmultipli[eé] par\b/g, '*')
-      .replace(/\bmultiplie par\b/g, '*')
+      .replace(/\bmultipli[eé]\s+par\b/g, '*')
+      .replace(/\bmultiplie\s+par\b/g, '*')
       .replace(/\bfois\b/g, '*')
       .replace(/\bx\b/g, '*');
 
@@ -477,22 +655,27 @@ function initCommands(getCity, hooks) {
     // Division
 
     t = t
-      .replace(/\bdivis[eé] par\b/g, '/')
-      .replace(/\bdivise par\b/g, '/')
-      .replace(/\bdivisé par\b/g, '/');
+      .replace(/\bdivis[eé]\s+par\b/g, '/')
+      .replace(/\bdivise\s+par\b/g, '/');
 
 
     // Addition
 
-    t = t.replace(/\bplus\b/g, '+');
+    t = t.replace(
+      /\bplus\b/g,
+      '+'
+    );
 
 
     // Soustraction
 
-    t = t.replace(/\bmoins\b/g, '-');
+    t = t.replace(
+      /\bmoins\b/g,
+      '-'
+    );
 
 
-    // Puissances
+    // Puissance
 
     t = t
       .replace(/\bau carr[eé]\b/g, '^2')
@@ -501,10 +684,10 @@ function initCommands(getCity, hooks) {
       .replace(/\bpuissance\b/g, '^');
 
 
-    // Racine
+    // Racine carrée
 
     t = t.replace(
-      /\bracine carr[eé]e? de\b/g,
+      /\bracine carr[eé]e?\s+de\b/g,
       'sqrt '
     );
 
@@ -512,22 +695,15 @@ function initCommands(getCity, hooks) {
     // Pourcentage
 
     t = t.replace(
-      /\bpour ?cent\b/g,
+      /\bpour\s*cent\b/g,
       '%'
     );
 
 
-    // Egal à
+    // Conversion nombres français
 
-    t = t.replace(
-      /\s+egal(?:e)?\s+a.*$/g,
-      ''
-    );
-
-
-    // Nombres français
-
-    t = replaceFrenchNumbers(t);
+    t =
+      replaceFrenchNumbers(t);
 
 
     // Nettoyage
@@ -542,6 +718,10 @@ function initCommands(getCity, hooks) {
   }
 
 
+  // ============================================================
+  // TOKENIZER CALCUL
+  // ============================================================
+
   function tokenizeExpression(expression) {
 
     const tokens = [];
@@ -551,7 +731,8 @@ function initCommands(getCity, hooks) {
 
     while (i < expression.length) {
 
-      const char = expression[i];
+      const char =
+        expression[i];
 
 
       if (char === ' ') {
@@ -564,31 +745,44 @@ function initCommands(getCity, hooks) {
 
         let number = '';
 
+
         while (
           i < expression.length &&
           /[0-9.]/.test(expression[i])
         ) {
 
           number += expression[i];
+
           i++;
         }
 
 
-        tokens.push({
-          type: 'number',
-          value: parseFloat(number)
-        });
+        const value =
+          parseFloat(number);
+
+
+        if (Number.isFinite(value)) {
+
+          tokens.push({
+            type: 'number',
+            value: value
+          });
+        }
+
 
         continue;
       }
 
 
-      if ('+-*/%^()'.includes(char)) {
+      if (
+        '+-*/%^()'.includes(char)
+      ) {
 
         tokens.push({
           type: 'operator',
           value: char
         });
+
 
         i++;
 
@@ -604,19 +798,28 @@ function initCommands(getCity, hooks) {
   }
 
 
+  // ============================================================
+  // CALCULATEUR
+  // ============================================================
+
   function evaluateExpression(expression) {
 
     const tokens =
       tokenizeExpression(expression);
 
-    if (!tokens.length) return null;
+
+    if (!tokens.length) {
+      return null;
+    }
+
 
     let position = 0;
 
 
     function parseExpression() {
 
-      let value = parseTerm();
+      let value =
+        parseTerm();
 
 
       while (
@@ -630,11 +833,17 @@ function initCommands(getCity, hooks) {
         const operator =
           tokens[position].value;
 
+
         position++;
 
-        const right = parseTerm();
 
-        if (right === null) return null;
+        const right =
+          parseTerm();
+
+
+        if (right === null) {
+          return null;
+        }
 
 
         if (operator === '+') {
@@ -651,7 +860,8 @@ function initCommands(getCity, hooks) {
 
     function parseTerm() {
 
-      let value = parsePower();
+      let value =
+        parsePower();
 
 
       while (
@@ -666,11 +876,17 @@ function initCommands(getCity, hooks) {
         const operator =
           tokens[position].value;
 
+
         position++;
 
-        const right = parsePower();
 
-        if (right === null) return null;
+        const right =
+          parsePower();
+
+
+        if (right === null) {
+          return null;
+        }
 
 
         if (operator === '*') {
@@ -681,7 +897,9 @@ function initCommands(getCity, hooks) {
         if (operator === '/') {
 
           if (right === 0) {
-            throw new Error('DIVISION_ZERO');
+            throw new Error(
+              'DIVISION_ZERO'
+            );
           }
 
           value /= right;
@@ -689,7 +907,9 @@ function initCommands(getCity, hooks) {
 
 
         if (operator === '%') {
-          value = value * right / 100;
+
+          value =
+            value * right / 100;
         }
       }
 
@@ -700,7 +920,8 @@ function initCommands(getCity, hooks) {
 
     function parsePower() {
 
-      let value = parseUnary();
+      let value =
+        parseUnary();
 
 
       if (
@@ -710,14 +931,21 @@ function initCommands(getCity, hooks) {
 
         position++;
 
-        const exponent = parsePower();
 
-        if (exponent === null) return null;
+        const exponent =
+          parsePower();
 
-        value = Math.pow(
-          value,
-          exponent
-        );
+
+        if (exponent === null) {
+          return null;
+        }
+
+
+        value =
+          Math.pow(
+            value,
+            exponent
+          );
       }
 
 
@@ -734,7 +962,10 @@ function initCommands(getCity, hooks) {
 
         position++;
 
-        const value = parseUnary();
+
+        const value =
+          parseUnary();
+
 
         return value === null
           ? null
@@ -760,18 +991,22 @@ function initCommands(getCity, hooks) {
 
         position++;
 
-        const value = parseExpression();
+
+        const value =
+          parseExpression();
 
 
         if (
           position >= tokens.length ||
           tokens[position].value !== ')'
         ) {
+
           return null;
         }
 
 
         position++;
+
 
         return value;
       }
@@ -785,7 +1020,9 @@ function initCommands(getCity, hooks) {
         const value =
           tokens[position].value;
 
+
         position++;
+
 
         return value;
       }
@@ -795,88 +1032,19 @@ function initCommands(getCity, hooks) {
     }
 
 
-    const result = parseExpression();
+    const result =
+      parseExpression();
 
 
-    if (position !== tokens.length) {
+    if (
+      position !== tokens.length
+    ) {
+
       return null;
     }
 
 
     return result;
-  }
-
-
-  function calculate(text) {
-
-    const expression =
-      cleanCalculationText(text);
-
-
-    // Racine carrée
-
-    const sqrtMatch =
-      expression.match(
-        /^sqrt\s+(-?\d+(?:\.\d+)?)$/
-      );
-
-
-    if (sqrtMatch) {
-
-      const value =
-        parseFloat(sqrtMatch[1]);
-
-
-      if (value < 0) {
-        return "Je ne peux pas calculer la racine carrée d'un nombre négatif.";
-      }
-
-
-      const result =
-        Math.sqrt(value);
-
-
-      return `La racine carrée de ${value} est ${formatNumber(result)}.`;
-    }
-
-
-    // Il faut au minimum un nombre
-    // et un opérateur.
-
-    if (!/[0-9]/.test(expression)) {
-      return null;
-    }
-
-
-    if (!/[+\-*/%^]/.test(expression)) {
-      return null;
-    }
-
-
-    try {
-
-      const result =
-        evaluateExpression(expression);
-
-
-      if (
-        result === null ||
-        !Number.isFinite(result)
-      ) {
-        return null;
-      }
-
-
-      return `Le résultat est ${formatNumber(result)}.`;
-
-    } catch (err) {
-
-      if (err.message === 'DIVISION_ZERO') {
-        return "Impossible de diviser par zéro.";
-      }
-
-      return null;
-    }
   }
 
 
@@ -902,26 +1070,110 @@ function initCommands(getCity, hooks) {
   }
 
 
+  function calculate(text) {
+
+    const expression =
+      cleanCalculationText(text);
+
+
+    // Racine carrée
+
+    const sqrtMatch =
+      expression.match(
+        /^sqrt\s+(-?\d+(?:\.\d+)?)$/
+      );
+
+
+    if (sqrtMatch) {
+
+      const value =
+        parseFloat(
+          sqrtMatch[1]
+        );
+
+
+      if (value < 0) {
+
+        return "Je ne peux pas calculer la racine carrée d'un nombre négatif.";
+      }
+
+
+      const result =
+        Math.sqrt(value);
+
+
+      return `La racine carrée de ${value} est ${formatNumber(result)}.`;
+    }
+
+
+    // Pas de calcul détecté
+
+    if (!/[0-9]/.test(expression)) {
+      return null;
+    }
+
+
+    if (!/[+\-*/%^]/.test(expression)) {
+      return null;
+    }
+
+
+    try {
+
+      const result =
+        evaluateExpression(
+          expression
+        );
+
+
+      if (
+        result === null ||
+        !Number.isFinite(result)
+      ) {
+
+        return null;
+      }
+
+
+      return `Le résultat est ${formatNumber(result)}.`;
+
+    } catch (err) {
+
+      if (
+        err.message === 'DIVISION_ZERO'
+      ) {
+
+        return "Impossible de diviser par zéro.";
+      }
+
+
+      return null;
+    }
+  }
+
+
   // ============================================================
   // RECHERCHE WEB
   // ============================================================
 
   function buildSearchQuery(t) {
 
-    let q = t
-      .replace(
-        /^(cherche[\s-]?moi|cherche|recherche[\s-]?moi|recherche)\s+/i,
-        ''
-      )
-      .trim();
+    let q =
+      t
+        .replace(
+          /^(cherche[\s-]?moi|cherche|recherche[\s-]?moi|recherche)\s+/i,
+          ''
+        )
+        .trim();
 
 
-    q = q
-      .replace(
-        /\s+sur\s+(internet|google|le\s+web)$/i,
-        ''
-      )
-      .trim();
+    q =
+      q
+        .replace(
+          /\s+sur\s+(internet|google|le\s+web)$/i,
+          ''
+        )
+        .trim();
 
 
     return q;
@@ -929,7 +1181,7 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // LISTE DE COURSES / TÂCHES
+  // LISTE
   // ============================================================
 
   function getTasks() {
@@ -937,7 +1189,9 @@ function initCommands(getCity, hooks) {
     try {
 
       return JSON.parse(
-        localStorage.getItem('jarvis_tasks') || '[]'
+        localStorage.getItem(
+          'jarvis_tasks'
+        ) || '[]'
       );
 
     } catch (e) {
@@ -958,11 +1212,15 @@ function initCommands(getCity, hooks) {
 
   function addTask(item) {
 
-    const tasks = getTasks();
+    const tasks =
+      getTasks();
+
 
     tasks.push(item);
 
+
     saveTasks(tasks);
+
 
     return `${item} ajouté à la liste.`;
   }
@@ -970,10 +1228,12 @@ function initCommands(getCity, hooks) {
 
   function listTasks() {
 
-    const tasks = getTasks();
+    const tasks =
+      getTasks();
 
 
     if (tasks.length === 0) {
+
       return "Ta liste est vide.";
     }
 
@@ -988,23 +1248,30 @@ function initCommands(getCity, hooks) {
 
   function removeTask(item) {
 
-    let tasks = getTasks();
+    let tasks =
+      getTasks();
 
-    const before = tasks.length;
+
+    const before =
+      tasks.length;
 
 
-    tasks = tasks.filter(
-      x =>
-        !x
-          .toLowerCase()
-          .includes(item.toLowerCase())
-    );
+    tasks =
+      tasks.filter(
+        x =>
+          !x
+            .toLowerCase()
+            .includes(
+              item.toLowerCase()
+            )
+      );
 
 
     saveTasks(tasks);
 
 
     if (tasks.length < before) {
+
       return `${item} retiré de la liste.`;
     }
 
@@ -1034,7 +1301,47 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 1. CALCUL
+    // 1. ANNULATION MINUTEUR
+    // ----------------------------------------------------------
+
+    if (
+      t.includes('annule le minuteur') ||
+      t.includes('annule mon minuteur') ||
+      t.includes('annuler le minuteur') ||
+      t.includes('stoppe le minuteur') ||
+      t.includes('stop le minuteur') ||
+      t.includes('arrête le minuteur') ||
+      t.includes('arrete le minuteur') ||
+      t.includes('annule le chrono') ||
+      t.includes('stoppe le chrono') ||
+      t.includes('stop le chrono') ||
+      t.includes('arrête le chrono') ||
+      t.includes('arrete le chrono') ||
+      t === 'annule le minuteur' ||
+      t === 'stop'
+    ) {
+
+      return cancelTimer();
+    }
+
+
+    // ----------------------------------------------------------
+    // 2. ANNULATION DES RAPPELS
+    // ----------------------------------------------------------
+
+    if (
+      t.includes('annule tous les rappels') ||
+      t.includes('annule mes rappels') ||
+      t.includes('supprime tous les rappels') ||
+      t.includes('efface tous les rappels')
+    ) {
+
+      return cancelReminders();
+    }
+
+
+    // ----------------------------------------------------------
+    // 3. CALCUL
     // ----------------------------------------------------------
 
     const calcResult =
@@ -1047,7 +1354,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 2. RECHERCHE WEB
+    // 4. RECHERCHE
     // ----------------------------------------------------------
 
     if (
@@ -1082,14 +1389,19 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 3. LISTE
+    // 5. LISTE
     // ----------------------------------------------------------
 
-    if (t.startsWith('ajoute')) {
+    if (
+      t.startsWith('ajoute')
+    ) {
 
       let item =
         t
-          .replace(/^ajoute\s+/, '')
+          .replace(
+            /^ajoute\s+/,
+            ''
+          )
           .replace(
             /\s+(à|a)\s+la\s+liste.*$/,
             ''
@@ -1157,12 +1469,12 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 4. MINUTEUR
+    // 6. MINUTEUR
     // ----------------------------------------------------------
 
     const timerMatch =
       t.match(
-        /(?:minuteur|chrono|compte[ -]?à[ -]?rebours).*?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
+        /(?:mets|met|lance|lancer|démarre|demarre|active)?\s*(?:un\s+)?(?:minuteur|chrono|compte[ -]?à[ -]?rebours)\s*(?:de\s+|pour\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
       );
 
 
@@ -1170,7 +1482,8 @@ function initCommands(getCity, hooks) {
 
       const amount =
         parseFloat(
-          timerMatch[1].replace(',', '.')
+          timerMatch[1]
+            .replace(',', '.')
         );
 
 
@@ -1185,8 +1498,37 @@ function initCommands(getCity, hooks) {
     }
 
 
+    // Formulation du type :
+    // "dans 10 secondes lance un minuteur"
+
+    const timerMatchReverse =
+      t.match(
+        /(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?).*(?:minuteur|chrono)/i
+      );
+
+
+    if (timerMatchReverse) {
+
+      const amount =
+        parseFloat(
+          timerMatchReverse[1]
+            .replace(',', '.')
+        );
+
+
+      const unit =
+        timerMatchReverse[2];
+
+
+      return startTimer(
+        amount,
+        unit
+      );
+    }
+
+
     // ----------------------------------------------------------
-    // 5. PILE OU FACE
+    // 7. PILE OU FACE
     // ----------------------------------------------------------
 
     if (
@@ -1201,7 +1543,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 6. DÉ
+    // 8. DÉ
     // ----------------------------------------------------------
 
     const diceTrigger =
@@ -1221,7 +1563,9 @@ function initCommands(getCity, hooks) {
     if (diceTrigger) {
 
       const facesMatch =
-        t.match(/(\d+)\s*face/);
+        t.match(
+          /(\d+)\s*face/
+        );
 
 
       const faces =
@@ -1233,12 +1577,14 @@ function initCommands(getCity, hooks) {
           : 6;
 
 
-      return await rollDice(faces);
+      return await rollDice(
+        faces
+      );
     }
 
 
     // ----------------------------------------------------------
-    // 7. MÉTÉO
+    // 9. MÉTÉO
     // ----------------------------------------------------------
 
     if (
@@ -1253,18 +1599,39 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 8. HEURE / DATE
+    // 10. HEURE
     // ----------------------------------------------------------
 
-    if (t.includes('heure')) {
+    if (
+      t.includes('quelle heure') ||
+      t.includes("l'heure") ||
+      t === 'heure' ||
+      t.includes('heure est il') ||
+      t.includes('heure est-il')
+    ) {
+
       return getTime();
     }
 
 
     if (
+      t.includes('heure')
+    ) {
+
+      return getTime();
+    }
+
+
+    // ----------------------------------------------------------
+    // 11. DATE
+    // ----------------------------------------------------------
+
+    if (
       t.includes('date') ||
-      t.includes('jour on est') ||
-      t.includes('quel jour')
+      t.includes('quel jour') ||
+      t.includes('quel jour sommes nous') ||
+      t.includes('quel jour on est') ||
+      t.includes('jour on est')
     ) {
 
       return getDate();
@@ -1272,12 +1639,12 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 9. RAPPEL
+    // 12. RAPPEL
     // ----------------------------------------------------------
 
     const reminderMatch =
       t.match(
-        /(?:rappelle(?:[- ]?moi)?|rappel(?:[- ]?moi)?).*?(?:dans\s*)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
+        /(?:rappelle(?:[- ]?moi)?|rappel(?:[- ]?moi)?).*?(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
       );
 
 
@@ -1285,7 +1652,8 @@ function initCommands(getCity, hooks) {
 
       const amount =
         parseFloat(
-          reminderMatch[1].replace(',', '.')
+          reminderMatch[1]
+            .replace(',', '.')
         );
 
 
@@ -1301,8 +1669,38 @@ function initCommands(getCity, hooks) {
     }
 
 
+    // Formulation :
+    // "dans 10 minutes rappelle-moi"
+
+    const reminderReverse =
+      t.match(
+        /dans\s+(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?).*(?:rappelle|rappel)/i
+      );
+
+
+    if (reminderReverse) {
+
+      const amount =
+        parseFloat(
+          reminderReverse[1]
+            .replace(',', '.')
+        );
+
+
+      const unit =
+        reminderReverse[2];
+
+
+      return setReminder(
+        amount,
+        unit,
+        'Rappel demandé'
+      );
+    }
+
+
     // ----------------------------------------------------------
-    // 10. SALUTATION
+    // 13. SALUTATION
     // ----------------------------------------------------------
 
     if (
@@ -1316,7 +1714,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 11. RÉPONSE PAR DÉFAUT
+    // 14. RÉPONSE PAR DÉFAUT
     // ----------------------------------------------------------
 
     return "Je n'ai pas encore appris à faire ça, mais je progresse.";
