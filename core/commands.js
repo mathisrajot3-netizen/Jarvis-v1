@@ -36,6 +36,7 @@ function initCommands(getCity, hooks) {
     }
   }
 
+
   function weatherCodeToText(code) {
     if (code === 0) return "ciel dégagé";
     if (code <= 3) return "partiellement nuageux";
@@ -61,6 +62,7 @@ function initCommands(getCity, hooks) {
     return `Il est ${h} heure ${m}.`;
   }
 
+
   function getDate() {
     const now = new Date();
 
@@ -76,29 +78,57 @@ function initCommands(getCity, hooks) {
   // RAPPELS
   // ============================================================
 
-  function setReminder(minutes, text) {
+  function setReminder(amount, unit, text) {
 
+    let delay;
+
+    if (unit && unit.startsWith('seconde')) {
+      delay = amount * 1000;
+    } else {
+      delay = amount * 60 * 1000;
+    }
+
+    // Demande l'autorisation de notification si nécessaire
     if (
       typeof Notification !== 'undefined' &&
-      Notification.permission !== 'granted'
+      Notification.permission === 'default'
     ) {
-      Notification.requestPermission();
+      Notification.requestPermission().catch(() => {});
     }
 
     setTimeout(() => {
 
+      const message = text || 'Rappel !';
+
+      // Notification du navigateur
       if (
         typeof Notification !== 'undefined' &&
         Notification.permission === 'granted'
       ) {
-        new Notification('Jarvis - Rappel', {
-          body: text || 'Rappel !'
-        });
+        try {
+          new Notification('Jarvis - Rappel', {
+            body: message
+          });
+
+          return;
+        } catch (e) {}
       }
 
-    }, minutes * 60 * 1000);
+      // Si les notifications ne fonctionnent pas,
+      // on utilise une alerte comme solution de secours.
+      try {
+        alert('🔔 Jarvis : ' + message);
+      } catch (e) {}
 
-    return `Rappel programmé dans ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+    }, delay);
+
+
+    const unitText =
+      unit && unit.startsWith('seconde')
+        ? 'seconde'
+        : 'minute';
+
+    return `Très bien. Je te rappellerai dans ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
   }
 
 
@@ -154,10 +184,12 @@ function initCommands(getCity, hooks) {
 
   function startTimer(amount, unit) {
 
-    const ms =
-      unit.startsWith('seconde')
-        ? amount * 1000
-        : amount * 60 * 1000;
+    const isSeconds =
+      unit.toLowerCase().startsWith('seconde');
+
+    const ms = isSeconds
+      ? amount * 1000
+      : amount * 60 * 1000;
 
     setTimeout(() => {
 
@@ -169,7 +201,12 @@ function initCommands(getCity, hooks) {
 
     }, ms);
 
-    return `Minuteur lancé pour ${amount} ${unit}${amount > 1 ? 's' : ''}.`;
+
+    const unitText = isSeconds
+      ? 'seconde'
+      : 'minute';
+
+    return `Minuteur lancé pour ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
   }
 
 
@@ -286,20 +323,28 @@ function initCommands(getCity, hooks) {
     for (const token of tokens) {
 
       if (token === 'million') {
+
         if (current === 0) current = 1;
+
         total += current * 1000000;
         current = 0;
         found = true;
+
         continue;
       }
 
+
       if (token === 'milliard') {
+
         if (current === 0) current = 1;
+
         total += current * 1000000000;
         current = 0;
         found = true;
+
         continue;
       }
+
 
       if (numberWords[token] !== undefined) {
 
@@ -324,6 +369,7 @@ function initCommands(getCity, hooks) {
         }
 
         found = true;
+
         continue;
       }
 
@@ -340,25 +386,19 @@ function initCommands(getCity, hooks) {
 
     let t = normalizeNumberWords(text);
 
-    /*
-     * On traite d'abord les nombres composés.
-     * Exemple :
-     * "vingt cinq" -> 25
-     * "cent vingt cinq" -> 125
-     * "deux mille trois" -> 2003
-     */
-
     const words = t.split(/\s+/);
 
     const output = [];
 
     let buffer = [];
 
+
     function flushBuffer() {
 
       if (!buffer.length) return;
 
-      const value = frenchNumberToValue(buffer.join(' '));
+      const value =
+        frenchNumberToValue(buffer.join(' '));
 
       if (value !== null) {
         output.push(String(value));
@@ -369,10 +409,11 @@ function initCommands(getCity, hooks) {
       buffer = [];
     }
 
+
     for (const word of words) {
 
-      const clean = word
-        .replace(/[.,!?]/g, '');
+      const clean =
+        word.replace(/[.,!?]/g, '');
 
       const isNumberWord =
         numberWords[clean] !== undefined ||
@@ -380,12 +421,16 @@ function initCommands(getCity, hooks) {
         clean === 'milliard';
 
       if (isNumberWord) {
+
         buffer.push(clean);
+
       } else {
+
         flushBuffer();
         output.push(word);
       }
     }
+
 
     flushBuffer();
 
@@ -400,7 +445,9 @@ function initCommands(getCity, hooks) {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
 
-    // Expressions vocales inutiles
+
+    // Expressions inutiles
+
     t = t
       .replace(/\bcombien font\b/g, '')
       .replace(/\bcombien fait\b/g, '')
@@ -417,49 +464,79 @@ function initCommands(getCity, hooks) {
       .replace(/\bs'il te plait\b/g, '')
       .replace(/\bs'il te plaît\b/g, '');
 
+
     // Multiplication
+
     t = t
       .replace(/\bmultipli[eé] par\b/g, '*')
       .replace(/\bmultiplie par\b/g, '*')
       .replace(/\bfois\b/g, '*')
       .replace(/\bx\b/g, '*');
 
+
     // Division
+
     t = t
       .replace(/\bdivis[eé] par\b/g, '/')
       .replace(/\bdivise par\b/g, '/')
       .replace(/\bdivisé par\b/g, '/');
 
+
     // Addition
+
     t = t.replace(/\bplus\b/g, '+');
 
+
     // Soustraction
+
     t = t.replace(/\bmoins\b/g, '-');
 
+
     // Puissances
+
     t = t
       .replace(/\bau carr[eé]\b/g, '^2')
       .replace(/\bau cube\b/g, '^3')
       .replace(/\bpuissance de\b/g, '^')
       .replace(/\bpuissance\b/g, '^');
 
+
     // Racine
-    t = t.replace(/\bracine carr[eé]e? de\b/g, 'sqrt ');
+
+    t = t.replace(
+      /\bracine carr[eé]e? de\b/g,
+      'sqrt '
+    );
+
 
     // Pourcentage
-    t = t.replace(/\bpour ?cent\b/g, '%');
 
-    // "égal à" à la fin
-    t = t.replace(/\s+egal(?:e)?\s+a.*$/g, '');
+    t = t.replace(
+      /\bpour ?cent\b/g,
+      '%'
+    );
 
-    // Conversion nombres français
+
+    // Egal à
+
+    t = t.replace(
+      /\s+egal(?:e)?\s+a.*$/g,
+      ''
+    );
+
+
+    // Nombres français
+
     t = replaceFrenchNumbers(t);
 
+
     // Nettoyage
+
     t = t
       .replace(/,/g, '.')
       .replace(/\s+/g, ' ')
       .trim();
+
 
     return t;
   }
@@ -471,14 +548,17 @@ function initCommands(getCity, hooks) {
 
     let i = 0;
 
+
     while (i < expression.length) {
 
       const char = expression[i];
+
 
       if (char === ' ') {
         i++;
         continue;
       }
+
 
       if (/[0-9.]/.test(char)) {
 
@@ -488,9 +568,11 @@ function initCommands(getCity, hooks) {
           i < expression.length &&
           /[0-9.]/.test(expression[i])
         ) {
+
           number += expression[i];
           i++;
         }
+
 
         tokens.push({
           type: 'number',
@@ -500,6 +582,7 @@ function initCommands(getCity, hooks) {
         continue;
       }
 
+
       if ('+-*/%^()'.includes(char)) {
 
         tokens.push({
@@ -508,11 +591,14 @@ function initCommands(getCity, hooks) {
         });
 
         i++;
+
         continue;
       }
 
+
       i++;
     }
+
 
     return tokens;
   }
@@ -520,7 +606,8 @@ function initCommands(getCity, hooks) {
 
   function evaluateExpression(expression) {
 
-    const tokens = tokenizeExpression(expression);
+    const tokens =
+      tokenizeExpression(expression);
 
     if (!tokens.length) return null;
 
@@ -531,6 +618,7 @@ function initCommands(getCity, hooks) {
 
       let value = parseTerm();
 
+
       while (
         position < tokens.length &&
         (
@@ -539,13 +627,15 @@ function initCommands(getCity, hooks) {
         )
       ) {
 
-        const operator = tokens[position].value;
+        const operator =
+          tokens[position].value;
 
         position++;
 
         const right = parseTerm();
 
         if (right === null) return null;
+
 
         if (operator === '+') {
           value += right;
@@ -554,6 +644,7 @@ function initCommands(getCity, hooks) {
         }
       }
 
+
       return value;
     }
 
@@ -561,6 +652,7 @@ function initCommands(getCity, hooks) {
     function parseTerm() {
 
       let value = parsePower();
+
 
       while (
         position < tokens.length &&
@@ -571,7 +663,8 @@ function initCommands(getCity, hooks) {
         )
       ) {
 
-        const operator = tokens[position].value;
+        const operator =
+          tokens[position].value;
 
         position++;
 
@@ -579,9 +672,11 @@ function initCommands(getCity, hooks) {
 
         if (right === null) return null;
 
+
         if (operator === '*') {
           value *= right;
         }
+
 
         if (operator === '/') {
 
@@ -592,10 +687,12 @@ function initCommands(getCity, hooks) {
           value /= right;
         }
 
+
         if (operator === '%') {
           value = value * right / 100;
         }
       }
+
 
       return value;
     }
@@ -604,6 +701,7 @@ function initCommands(getCity, hooks) {
     function parsePower() {
 
       let value = parseUnary();
+
 
       if (
         position < tokens.length &&
@@ -616,8 +714,12 @@ function initCommands(getCity, hooks) {
 
         if (exponent === null) return null;
 
-        value = Math.pow(value, exponent);
+        value = Math.pow(
+          value,
+          exponent
+        );
       }
+
 
       return value;
     }
@@ -634,8 +736,11 @@ function initCommands(getCity, hooks) {
 
         const value = parseUnary();
 
-        return value === null ? null : -value;
+        return value === null
+          ? null
+          : -value;
       }
+
 
       if (
         position < tokens.length &&
@@ -647,6 +752,7 @@ function initCommands(getCity, hooks) {
         return parseUnary();
       }
 
+
       if (
         position < tokens.length &&
         tokens[position].value === '('
@@ -656,6 +762,7 @@ function initCommands(getCity, hooks) {
 
         const value = parseExpression();
 
+
         if (
           position >= tokens.length ||
           tokens[position].value !== ')'
@@ -663,22 +770,26 @@ function initCommands(getCity, hooks) {
           return null;
         }
 
+
         position++;
 
         return value;
       }
+
 
       if (
         position < tokens.length &&
         tokens[position].type === 'number'
       ) {
 
-        const value = tokens[position].value;
+        const value =
+          tokens[position].value;
 
         position++;
 
         return value;
       }
+
 
       return null;
     }
@@ -686,9 +797,11 @@ function initCommands(getCity, hooks) {
 
     const result = parseExpression();
 
+
     if (position !== tokens.length) {
       return null;
     }
+
 
     return result;
   }
@@ -696,45 +809,63 @@ function initCommands(getCity, hooks) {
 
   function calculate(text) {
 
-    let original = text;
+    const expression =
+      cleanCalculationText(text);
 
-    let expression = cleanCalculationText(text);
 
     // Racine carrée
-    const sqrtMatch = expression.match(
-      /^sqrt\s+(-?\d+(?:\.\d+)?)$/
-    );
+
+    const sqrtMatch =
+      expression.match(
+        /^sqrt\s+(-?\d+(?:\.\d+)?)$/
+      );
+
 
     if (sqrtMatch) {
 
-      const value = parseFloat(sqrtMatch[1]);
+      const value =
+        parseFloat(sqrtMatch[1]);
+
 
       if (value < 0) {
         return "Je ne peux pas calculer la racine carrée d'un nombre négatif.";
       }
 
-      const result = Math.sqrt(value);
+
+      const result =
+        Math.sqrt(value);
+
 
       return `La racine carrée de ${value} est ${formatNumber(result)}.`;
     }
 
 
-    // Détection d'une vraie expression
+    // Il faut au minimum un nombre
+    // et un opérateur.
+
     if (!/[0-9]/.test(expression)) {
       return null;
     }
+
 
     if (!/[+\-*/%^]/.test(expression)) {
       return null;
     }
 
+
     try {
 
-      const result = evaluateExpression(expression);
+      const result =
+        evaluateExpression(expression);
 
-      if (result === null || !Number.isFinite(result)) {
+
+      if (
+        result === null ||
+        !Number.isFinite(result)
+      ) {
         return null;
       }
+
 
       return `Le résultat est ${formatNumber(result)}.`;
 
@@ -751,11 +882,21 @@ function initCommands(getCity, hooks) {
 
   function formatNumber(number) {
 
-    if (Math.abs(number - Math.round(number)) < 0.000000001) {
-      return String(Math.round(number));
+    if (
+      Math.abs(
+        number - Math.round(number)
+      ) < 0.000000001
+    ) {
+
+      return String(
+        Math.round(number)
+      );
     }
 
-    return Number(number.toFixed(8))
+
+    return Number(
+      number.toFixed(8)
+    )
       .toString()
       .replace('.', ',');
   }
@@ -774,6 +915,7 @@ function initCommands(getCity, hooks) {
       )
       .trim();
 
+
     q = q
       .replace(
         /\s+sur\s+(internet|google|le\s+web)$/i,
@@ -781,21 +923,25 @@ function initCommands(getCity, hooks) {
       )
       .trim();
 
+
     return q;
   }
 
 
   // ============================================================
-  // LISTE
+  // LISTE DE COURSES / TÂCHES
   // ============================================================
 
   function getTasks() {
 
     try {
+
       return JSON.parse(
         localStorage.getItem('jarvis_tasks') || '[]'
       );
+
     } catch (e) {
+
       return [];
     }
   }
@@ -826,13 +972,17 @@ function initCommands(getCity, hooks) {
 
     const tasks = getTasks();
 
+
     if (tasks.length === 0) {
       return "Ta liste est vide.";
     }
 
-    return "Dans ta liste : " +
+
+    return (
+      "Dans ta liste : " +
       tasks.join(', ') +
-      '.';
+      '.'
+    );
   }
 
 
@@ -842,6 +992,7 @@ function initCommands(getCity, hooks) {
 
     const before = tasks.length;
 
+
     tasks = tasks.filter(
       x =>
         !x
@@ -849,11 +1000,14 @@ function initCommands(getCity, hooks) {
           .includes(item.toLowerCase())
     );
 
+
     saveTasks(tasks);
+
 
     if (tasks.length < before) {
       return `${item} retiré de la liste.`;
     }
+
 
     return `Je n'ai pas trouvé ${item} dans la liste.`;
   }
@@ -873,16 +1027,19 @@ function initCommands(getCity, hooks) {
 
   async function handle(text) {
 
-    const t = text
-      .toLowerCase()
-      .trim();
+    const t =
+      text
+        .toLowerCase()
+        .trim();
 
 
     // ----------------------------------------------------------
     // 1. CALCUL
     // ----------------------------------------------------------
 
-    const calcResult = calculate(t);
+    const calcResult =
+      calculate(t);
+
 
     if (calcResult) {
       return calcResult;
@@ -898,7 +1055,9 @@ function initCommands(getCity, hooks) {
       t.startsWith('recherche')
     ) {
 
-      const query = buildSearchQuery(t);
+      const query =
+        buildSearchQuery(t);
+
 
       if (query) {
 
@@ -906,7 +1065,9 @@ function initCommands(getCity, hooks) {
           'https://www.google.com/search?q=' +
           encodeURIComponent(query);
 
+
         return {
+
           text:
             `Voici ce que j'ai trouvé pour "${query}". ` +
             `Touche le lien en bas pour l'ouvrir.`,
@@ -926,13 +1087,15 @@ function initCommands(getCity, hooks) {
 
     if (t.startsWith('ajoute')) {
 
-      let item = t
-        .replace(/^ajoute\s+/, '')
-        .replace(
-          /\s+(à|a)\s+la\s+liste.*$/,
-          ''
-        )
-        .trim();
+      let item =
+        t
+          .replace(/^ajoute\s+/, '')
+          .replace(
+            /\s+(à|a)\s+la\s+liste.*$/,
+            ''
+          )
+          .trim();
+
 
       if (item) {
         return addTask(item);
@@ -965,16 +1128,18 @@ function initCommands(getCity, hooks) {
       t.startsWith('retire')
     ) {
 
-      let item = t
-        .replace(
-          /^(supprime|enlève|enleve|retire)\s+/,
-          ''
-        )
-        .replace(
-          /\s+de\s+la\s+liste.*$/,
-          ''
-        )
-        .trim();
+      let item =
+        t
+          .replace(
+            /^(supprime|enlève|enleve|retire)\s+/,
+            ''
+          )
+          .replace(
+            /\s+de\s+la\s+liste.*$/,
+            ''
+          )
+          .trim();
+
 
       if (item) {
         return removeTask(item);
@@ -995,9 +1160,11 @@ function initCommands(getCity, hooks) {
     // 4. MINUTEUR
     // ----------------------------------------------------------
 
-    const timerMatch = t.match(
-      /minuteur.*?(\d+(?:[.,]\d+)?)\s*(minute|minutes|seconde|secondes)/
-    );
+    const timerMatch =
+      t.match(
+        /(?:minuteur|chrono|compte[ -]?à[ -]?rebours).*?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
+      );
+
 
     if (timerMatch) {
 
@@ -1006,9 +1173,15 @@ function initCommands(getCity, hooks) {
           timerMatch[1].replace(',', '.')
         );
 
-      const unit = timerMatch[2];
 
-      return startTimer(amount, unit);
+      const unit =
+        timerMatch[2];
+
+
+      return startTimer(
+        amount,
+        unit
+      );
     }
 
 
@@ -1044,15 +1217,21 @@ function initCommands(getCity, hooks) {
         /\d+\s*face/.test(t)
       );
 
+
     if (diceTrigger) {
 
       const facesMatch =
         t.match(/(\d+)\s*face/);
 
+
       const faces =
         facesMatch
-          ? parseInt(facesMatch[1], 10)
+          ? parseInt(
+              facesMatch[1],
+              10
+            )
           : 6;
+
 
       return await rollDice(faces);
     }
@@ -1081,6 +1260,7 @@ function initCommands(getCity, hooks) {
       return getTime();
     }
 
+
     if (
       t.includes('date') ||
       t.includes('jour on est') ||
@@ -1095,20 +1275,27 @@ function initCommands(getCity, hooks) {
     // 9. RAPPEL
     // ----------------------------------------------------------
 
-    const reminderMatch = t.match(
-      /rappel(?:le)?\s*(?:moi)?\s*(?:dans)?\s*(\d+)\s*minute/
-    );
+    const reminderMatch =
+      t.match(
+        /(?:rappelle(?:[- ]?moi)?|rappel(?:[- ]?moi)?).*?(?:dans\s*)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
+      );
+
 
     if (reminderMatch) {
 
-      const minutes =
-        parseInt(
-          reminderMatch[1],
-          10
+      const amount =
+        parseFloat(
+          reminderMatch[1].replace(',', '.')
         );
 
+
+      const unit =
+        reminderMatch[2];
+
+
       return setReminder(
-        minutes,
+        amount,
+        unit,
         'Rappel demandé'
       );
     }
