@@ -13,7 +13,21 @@
     <button id="settingsBtn" aria-label="Réglages">⚙️</button>
   </div>
 
+  <div id="settingsPanel" class="hidden">
+    <div class="settingsBox">
+      <h2>Réglages</h2>
+      <label for="apiKeyInput">Clé API Anthropic</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+      <p class="hint">Stockée uniquement sur ta tablette, jamais envoyée ailleurs qu'à Anthropic.</p>
+      <div class="settingsActions">
+        <button id="saveKeyBtn">Enregistrer</button>
+        <button id="closeSettingsBtn">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <script src="core/sphere.js"></script>
+  <script src="core/settings.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
