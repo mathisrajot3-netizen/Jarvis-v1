@@ -174,3 +174,14 @@ body {
   font-size: 38px;
   font-weight: bold;
 }
+
+#linkArea {
+  min-height: 20px;
+  text-align: center;
+}
+
+#linkArea a {
+  color: #8fc4ff;
+  font-size: 14px;
+  text-decoration: underline;
+}
