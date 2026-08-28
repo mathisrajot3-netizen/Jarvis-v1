@@ -1,22 +1,27 @@
-function initVoice(onWake, onCommand, onSleep) {
+function initVoice(onWake, onCommand, onSleep, onDebug) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    console.warn('Reconnaissance vocale non supportée sur ce navigateur.');
+    onDebug('Reconnaissance vocale non supportée sur ce navigateur.');
     return { start: () => {}, speak: (text) => console.log('Jarvis dirait:', text) };
   }
 
-  let mode = 'wake'; // 'wake' = attend "hey jarvis", 'command' = écoute la demande
+  let mode = 'wake';
   let recognition = new SpeechRecognition();
   recognition.lang = 'fr-FR';
   recognition.continuous = true;
-  recognition.interimResults = false;
+  recognition.interimResults = true;
 
   recognition.onresult = (event) => {
-    const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+    const result = event.results[event.results.length - 1];
+    const transcript = result[0].transcript.trim().toLowerCase();
+
+    onDebug('Entendu : "' + transcript + '"' + (result.isFinal ? ' (final)' : ' (...)'));
+
+    if (!result.isFinal) return;
 
     if (mode === 'wake') {
-      if (transcript.includes('hey jarvis') || transcript.includes('hé jarvis') || transcript.includes('ei jarvis')) {
+      if (transcript.includes('hey jarvis') || transcript.includes('hé jarvis') || transcript.includes('ei jarvis') || transcript.includes('jarvis')) {
         mode = 'command';
         onWake();
       }
@@ -27,11 +32,12 @@ function initVoice(onWake, onCommand, onSleep) {
   };
 
   recognition.onend = () => {
-    recognition.start();
+    onDebug('(recognition arrêtée, redémarrage...)');
+    try { recognition.start(); } catch (e) { onDebug('Erreur redémarrage: ' + e.message); }
   };
 
   recognition.onerror = (e) => {
-    console.warn('Erreur reconnaissance vocale:', e.error);
+    onDebug('Erreur: ' + e.error);
   };
 
   function speak(text) {
@@ -45,7 +51,12 @@ function initVoice(onWake, onCommand, onSleep) {
   }
 
   function start() {
-    try { recognition.start(); } catch (e) {}
+    try {
+      recognition.start();
+      onDebug('Micro démarré, en écoute...');
+    } catch (e) {
+      onDebug('Erreur démarrage: ' + e.message);
+    }
   }
 
   return { start, speak };
