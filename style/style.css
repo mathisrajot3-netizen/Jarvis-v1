@@ -1,187 +1,840 @@
+/* =========================================================
+   JARVIS V2 — INTERFACE VISUELLE
+   Aucun JavaScript supplémentaire.
+   Les IDs/classes existants sont conservés.
+   ========================================================= */
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  background: #050608;
-  height: 100vh;
-  overflow: hidden;
-  font-family: -apple-system, sans-serif;
+:root {
+  --bg: #020508;
+  --blue: #5dbdff;
+  --blue-light: #a9e3ff;
+  --blue-dark: #214967;
+  --text: #d8f2ff;
+  --muted: #54758d;
+  --line: rgba(77, 177, 235, 0.22);
+  --glow: rgba(36, 157, 225, 0.28);
 }
 
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(0, 95, 145, 0.10) 0%,
+      rgba(0, 25, 42, 0.08) 25%,
+      transparent 58%
+    ),
+    #020508;
+
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  -webkit-user-select: none;
+  user-select: none;
+
+  overscroll-behavior: none;
+}
+
+/* =========================================================
+   APPLICATION
+   ========================================================= */
+
 #app {
+  position: relative;
+
+  width: 100%;
+  height: 100dvh;
+  min-height: 100vh;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  gap: 24px;
+
+  gap: 18px;
+
+  overflow: hidden;
+
+  isolation: isolate;
 }
+
+/* Halo général derrière JARVIS */
+
+#app::before {
+  content: "";
+
+  position: absolute;
+
+  width: 75vw;
+  height: 75vw;
+
+  max-width: 520px;
+  max-height: 520px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(39, 168, 235, 0.12) 0%,
+      rgba(15, 101, 150, 0.055) 35%,
+      transparent 70%
+    );
+
+  filter: blur(18px);
+
+  pointer-events: none;
+
+  z-index: -2;
+
+  animation: mainGlow 4s ease-in-out infinite;
+}
+
+@keyframes mainGlow {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.75;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+/* Grille futuriste très légère */
+
+#app::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  z-index: -1;
+
+  opacity: 0.18;
+
+  background-image:
+    linear-gradient(
+      rgba(72, 165, 211, 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(72, 165, 211, 0.08) 1px,
+      transparent 1px
+    );
+
+  background-size: 45px 45px;
+
+  mask-image:
+    radial-gradient(
+      circle at center,
+      black 0%,
+      transparent 75%
+    );
+
+  -webkit-mask-image:
+    radial-gradient(
+      circle at center,
+      black 0%,
+      transparent 75%
+    );
+}
+
+/* =========================================================
+   SPHÈRE
+   ========================================================= */
 
 #sphere {
-  width: 90vw;
-  max-width: 420px;
-  height: 90vw;
-  max-height: 420px;
+  position: relative;
+
+  width: 82vw;
+  height: 82vw;
+
+  max-width: 430px;
+  max-height: 430px;
+
+  display: block;
+
+  cursor: pointer;
+
+  touch-action: manipulation;
+
+  z-index: 2;
+
+  /*
+    Le canvas reste totalement contrôlé par sphere.js.
+    On ajoute seulement un effet lumineux autour.
+  */
+
+  filter:
+    drop-shadow(0 0 6px rgba(67, 186, 255, 0.75))
+    drop-shadow(0 0 25px rgba(0, 125, 205, 0.25));
+
+  animation: sphereFloat 5s ease-in-out infinite;
 }
+
+@keyframes sphereFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* =========================================================
+   ANNEAUX FUTURISTES AUTOUR DE LA SPHÈRE
+   ========================================================= */
+
+/*
+   On utilise le conteneur #app et des pseudo-éléments
+   pour ne créer aucun nouvel élément HTML.
+*/
+
+#app::before {
+  /* Le halo existe déjà ici. */
+}
+
+/* =========================================================
+   STATUS
+   ========================================================= */
 
 #status {
-  color: #5f8db3;
-  font-size: 14px;
+  position: relative;
+
+  margin-top: 2px;
+
+  min-height: 20px;
+
+  color: #6597b5;
+
+  font-size: 13px;
+  font-weight: 400;
+
+  letter-spacing: 0.8px;
+
   text-align: center;
+
+  text-shadow:
+    0 0 10px rgba(55, 170, 225, 0.18);
+
+  transition:
+    color 0.25s ease,
+    text-shadow 0.25s ease,
+    transform 0.25s ease;
+
+  z-index: 5;
 }
+
+/* Petits points lumineux sous le statut */
+
+#status::after {
+  content: "•  •  •";
+
+  display: block;
+
+  margin-top: 7px;
+
+  color: rgba(77, 181, 234, 0.45);
+
+  font-size: 7px;
+  letter-spacing: 3px;
+
+  animation: statusDots 2s ease-in-out infinite;
+}
+
+@keyframes statusDots {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* =========================================================
+   BOUTON RÉGLAGES
+   ========================================================= */
 
 #settingsBtn {
-  background: transparent;
-  border: 0.5px solid #1c3550;
-  color: #6fa8dc;
-  border-radius: 12px;
-  padding: 10px 22px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-#settingsPanel {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
+
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+
+  width: 48px;
+  height: 48px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  padding: 0;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(12, 35, 52, 0.9),
+      rgba(3, 12, 19, 0.9)
+    );
+
+  border: 1px solid rgba(75, 169, 218, 0.30);
+
+  color: #79b9da;
+
+  border-radius: 14px;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 20px rgba(0, 112, 178, 0.10),
+    inset 0 0 15px rgba(74, 181, 235, 0.035);
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+#settingsBtn:hover {
+  border-color: rgba(85, 190, 242, 0.55);
+
+  box-shadow:
+    0 0 25px rgba(0, 139, 211, 0.18),
+    inset 0 0 18px rgba(74, 181, 235, 0.05);
+}
+
+#settingsBtn:active {
+  transform: scale(0.91);
+}
+
+#settingsBtn::after {
+  content: "";
+
+  position: absolute;
+
+  inset: -5px;
+
+  border-radius: 18px;
+
+  border: 1px solid rgba(64, 164, 215, 0.08);
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   LIEN DE RECHERCHE
+   ========================================================= */
+
+#linkArea {
+  position: relative;
+
+  min-height: 20px;
+
+  max-width: 90%;
+
+  text-align: center;
+
+  z-index: 10;
+}
+
+#linkArea a {
+  display: inline-block;
+
+  padding: 9px 15px;
+
+  border: 1px solid rgba(82, 183, 232, 0.28);
+
+  border-radius: 10px;
+
+  background:
+    rgba(4, 17, 27, 0.82);
+
+  color: #8fd7ff;
+
+  font-size: 12px;
+
+  text-decoration: none;
+
+  box-shadow:
+    0 0 18px rgba(0, 119, 183, 0.10);
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+#linkArea a:active {
+  transform: scale(0.96);
+}
+
+/* =========================================================
+   PANNEAU RÉGLAGES
+   ========================================================= */
+
+#settingsPanel {
+  position: fixed;
+
+  inset: 0;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(12, 73, 105, 0.16),
+      transparent 55%
+    ),
+    rgba(0, 3, 6, 0.78);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  z-index: 100;
 }
 
 #settingsPanel.hidden {
   display: none;
 }
 
+/* Boîte */
+
 .settingsBox {
-  background: #0a1420;
-  border: 0.5px solid #1c3550;
-  border-radius: 16px;
-  padding: 24px;
+  position: relative;
+
   width: 85%;
-  max-width: 340px;
+  max-width: 360px;
+
+  padding: 25px;
+
   color: #cfe4fb;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(10, 29, 43, 0.98),
+      rgba(4, 12, 20, 0.98)
+    );
+
+  border: 1px solid rgba(74, 180, 232, 0.30);
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 0 50px rgba(0, 102, 160, 0.20),
+    inset 0 0 25px rgba(70, 178, 230, 0.035);
 }
+
+/* Petite bordure intérieure */
+
+.settingsBox::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 7px;
+
+  border: 1px solid rgba(73, 176, 226, 0.07);
+
+  border-radius: 14px;
+
+  pointer-events: none;
+}
+
+/* Titre */
 
 .settingsBox h2 {
-  font-size: 16px;
-  margin-bottom: 16px;
-  color: #8fc4ff;
+  font-size: 17px;
+
+  margin-bottom: 20px;
+
+  color: #a4dcff;
+
+  letter-spacing: 1.5px;
+
+  text-shadow:
+    0 0 12px rgba(78, 190, 240, 0.25);
 }
 
+/* Label */
+
 .settingsBox label {
-  font-size: 13px;
-  color: #6fa8dc;
+  font-size: 11px;
+
+  color: #70a9c7;
+
   display: block;
-  margin-bottom: 6px;
+
+  margin-bottom: 8px;
+
+  letter-spacing: 1px;
 }
+
+/* Input */
 
 .settingsBox input {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 0.5px solid #1c3550;
-  background: #050608;
-  color: #cfe4fb;
+
+  height: 46px;
+
+  padding: 0 13px;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(67, 168, 219, 0.25);
+
+  outline: none;
+
+  background: rgba(2, 9, 15, 0.9);
+
+  color: #d8f3ff;
+
   font-size: 14px;
+
   margin-bottom: 8px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.hint {
-  font-size: 12px;
-  color: #3a5a75;
-  margin-bottom: 16px;
+.settingsBox input:focus {
+  border-color: rgba(82, 191, 240, 0.65);
+
+  box-shadow:
+    0 0 15px rgba(0, 137, 204, 0.14);
 }
+
+/* Texte explicatif */
+
+.hint {
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  color: #496c80;
+
+  margin-bottom: 19px;
+}
+
+/* Boutons */
 
 .settingsActions {
   display: flex;
+
   gap: 10px;
 }
 
 .settingsActions button {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: 0.5px solid #1c3550;
-  background: transparent;
-  color: #6fa8dc;
-  font-size: 13px;
+
+  height: 43px;
+
+  padding: 0;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(74, 176, 225, 0.25);
+
+  background:
+    rgba(6, 25, 37, 0.7);
+
+  color: #72b8db;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.8px;
+
   cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.settingsActions button:active {
+  transform: scale(0.97);
 }
 
 #saveKeyBtn {
-  border-color: #5aa8ff !important;
-  color: #bfe0ff !important;
-  }
+  border-color: rgba(83, 181, 236, 0.58) !important;
+
+  color: #bdeaff !important;
+
+  background:
+    rgba(23, 110, 153, 0.18) !important;
+
+  box-shadow:
+    0 0 15px rgba(0, 134, 202, 0.08);
+}
+
+/* =========================================================
+   DÉ
+   ========================================================= */
 
 #diceOverlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+
+  inset: 0;
+
   display: flex;
+
   align-items: center;
   justify-content: center;
+
   pointer-events: none;
-  z-index: 10;
+
+  z-index: 200;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(13, 91, 131, 0.12),
+      transparent 50%
+    ),
+    rgba(0, 3, 7, 0.55);
+
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 #diceOverlay.hidden {
   display: none;
 }
 
+/* Dé */
+
 #diceFace {
-  width: 100px;
-  height: 100px;
-  background: #0a1420;
-  border: 1.5px solid #5aa8ff;
-  border-radius: 18px;
+  position: relative;
+
+  width: 110px;
+  height: 110px;
+
+  background:
+    radial-gradient(
+      circle at 30% 25%,
+      rgba(120, 216, 255, 0.22),
+      transparent 30%
+    ),
+    linear-gradient(
+      145deg,
+      #0c3045,
+      #04121d
+    );
+
+  border: 1px solid rgba(88, 194, 246, 0.65);
+
+  border-radius: 20px;
+
   display: grid;
+
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
+
   padding: 16px;
+
   gap: 4px;
+
   align-items: center;
   justify-items: center;
+
+  box-shadow:
+    0 0 25px rgba(0, 151, 221, 0.30),
+    0 0 70px rgba(0, 104, 168, 0.12),
+    inset 0 0 25px rgba(67, 188, 238, 0.08);
 }
 
+/* Animation du dé */
+
 #diceFace.rolling {
-  animation: diceShake 0.08s infinite;
+  animation:
+    diceShake 0.08s infinite,
+    diceGlow 1s ease-in-out infinite;
 }
 
 @keyframes diceShake {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(6deg); }
-  100% { transform: rotate(-6deg); }
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  25% {
+    transform: rotate(5deg) scale(1.02);
+  }
+
+  50% {
+    transform: rotate(0deg) scale(1.04);
+  }
+
+  75% {
+    transform: rotate(-5deg) scale(1.02);
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
 }
+
+@keyframes diceGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 25px rgba(0, 151, 221, 0.30),
+      0 0 70px rgba(0, 104, 168, 0.12),
+      inset 0 0 25px rgba(67, 188, 238, 0.08);
+  }
+
+  50% {
+    box-shadow:
+      0 0 40px rgba(0, 171, 245, 0.55),
+      0 0 90px rgba(0, 121, 193, 0.20),
+      inset 0 0 35px rgba(67, 188, 238, 0.13);
+  }
+}
+
+/* Points du dé */
 
 .pip {
   width: 14px;
   height: 14px;
+
   border-radius: 50%;
+
   background: transparent;
 }
 
 .pip.on {
-  background: #8fc4ff;
+  background: #9bdeff;
+
+  box-shadow:
+    0 0 7px rgba(98, 201, 255, 0.85),
+    0 0 14px rgba(40, 160, 225, 0.35);
 }
+
+/* Numéro */
 
 #diceNumberText {
   grid-column: 1 / 4;
   grid-row: 1 / 4;
-  color: #bfe0ff;
-  font-size: 38px;
-  font-weight: bold;
+
+  color: #c8efff;
+
+  font-size: 40px;
+
+  font-weight: 700;
+
+  text-shadow:
+    0 0 15px rgba(84, 197, 250, 0.45);
 }
 
-#linkArea {
-  min-height: 20px;
-  text-align: center;
+/* =========================================================
+   ADAPTATION TÉLÉPHONE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  #sphere {
+    width: 78vw;
+    height: 78vw;
+
+    max-width: 390px;
+    max-height: 390px;
+  }
+
+  #status {
+    font-size: 13px;
+  }
+
+  .settingsBox {
+    width: 90%;
+  }
 }
 
-#linkArea a {
-  color: #8fc4ff;
-  font-size: 14px;
-  text-decoration: underline;
+/* =========================================================
+   PETITS ÉCRANS EN HAUTEUR
+   ========================================================= */
+
+@media (max-height: 700px) {
+
+  #app {
+    gap: 10px;
+  }
+
+  #sphere {
+    width: min(65vh, 340px);
+    height: min(65vh, 340px);
+  }
+
+  #status {
+    font-size: 12px;
+  }
+
+  #status::after {
+    margin-top: 4px;
+  }
+
+  #settingsBtn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* =========================================================
+   TRÈS PETITS ÉCRANS
+   ========================================================= */
+
+@media (max-height: 560px) {
+
+  #sphere {
+    width: min(58vh, 280px);
+    height: min(58vh, 280px);
+  }
+
+  #status {
+    font-size: 11px;
+  }
+}
+
+/* =========================================================
+   RÉDUCTION DES ANIMATIONS SI LE TÉLÉPHONE LE DEMANDE
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
