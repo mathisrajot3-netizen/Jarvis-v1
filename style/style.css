@@ -116,3 +116,61 @@ body {
   border-color: #5aa8ff !important;
   color: #bfe0ff !important;
   }
+
+#diceOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#diceOverlay.hidden {
+  display: none;
+}
+
+#diceFace {
+  width: 100px;
+  height: 100px;
+  background: #0a1420;
+  border: 1.5px solid #5aa8ff;
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 16px;
+  gap: 4px;
+  align-items: center;
+  justify-items: center;
+}
+
+#diceFace.rolling {
+  animation: diceShake 0.08s infinite;
+}
+
+@keyframes diceShake {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(6deg); }
+  100% { transform: rotate(-6deg); }
+}
+
+.pip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.pip.on {
+  background: #8fc4ff;
+}
+
+#diceNumberText {
+  grid-column: 1 / 4;
+  grid-row: 1 / 4;
+  color: #bfe0ff;
+  font-size: 38px;
+  font-weight: bold;
+}
