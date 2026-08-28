@@ -3,10 +3,9 @@ function initSettings() {
   const openBtn = document.getElementById('settingsBtn');
   const closeBtn = document.getElementById('closeSettingsBtn');
   const saveBtn = document.getElementById('saveKeyBtn');
-  const input = document.getElementById('apiKeyInput');
+  const input = document.getElementById('cityInput');
 
-  // Recharge la clé déjà enregistrée, si elle existe
-  const saved = localStorage.getItem('jarvis_api_key');
+  const saved = localStorage.getItem('jarvis_city');
   if (saved) input.value = saved;
 
   function open(e) {
@@ -24,17 +23,16 @@ function initSettings() {
 
   saveBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const key = input.value.trim();
-    if (key) {
-      localStorage.setItem('jarvis_api_key', key);
+    const city = input.value.trim();
+    if (city) {
+      localStorage.setItem('jarvis_city', city);
     }
     close();
   });
 
-  // Empêche un clic dans le panneau de fermer/relancer le mode "parler"
   panel.addEventListener('click', (e) => e.stopPropagation());
 
   return {
-    getApiKey: () => localStorage.getItem('jarvis_api_key')
+    getCity: () => localStorage.getItem('jarvis_city') || 'Dunkerque'
   };
 }
