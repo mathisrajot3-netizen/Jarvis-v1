@@ -1,7 +1,7 @@
 function initCommands(getCity, hooks) {
 
   // ============================================================
-  // VARIABLES DES MINUTEURS / RAPPELS
+  // VARIABLES
   // ============================================================
 
   let activeTimer = null;
@@ -15,9 +15,11 @@ function initCommands(getCity, hooks) {
   // ============================================================
 
   async function getWeather() {
+
     const city = getCity();
 
     try {
+
       const geoRes = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr`
       );
@@ -28,7 +30,12 @@ function initCommands(getCity, hooks) {
         return `Je ne trouve pas la ville ${city}.`;
       }
 
-      const { latitude, longitude, name } = geoData.results[0];
+      const {
+        latitude,
+        longitude,
+        name
+      } = geoData.results[0];
+
 
       const wRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`
@@ -36,27 +43,103 @@ function initCommands(getCity, hooks) {
 
       const wData = await wRes.json();
 
-      const temp = Math.round(wData.current.temperature_2m);
-      const desc = weatherCodeToText(wData.current.weather_code);
+      const temp =
+        Math.round(wData.current.temperature_2m);
 
-      return `À ${name}, il fait ${temp} degrés, ${desc}.`;
+      const weatherCode =
+        wData.current.weather_code;
+
+      const desc =
+        weatherCodeToText(weatherCode);
+
+      const icon =
+        weatherCodeToIcon(weatherCode);
+
+
+      return {
+        text: `À ${name}, il fait ${temp} degrés, ${desc}.`,
+        weatherIcon: icon
+      };
 
     } catch (err) {
+
       return "Je n'arrive pas à récupérer la météo pour le moment.";
     }
   }
 
 
   function weatherCodeToText(code) {
-    if (code === 0) return "ciel dégagé";
-    if (code <= 3) return "partiellement nuageux";
-    if (code <= 48) return "brumeux";
-    if (code <= 67) return "pluvieux";
-    if (code <= 77) return "neigeux";
-    if (code <= 82) return "averses";
-    if (code <= 99) return "orageux";
+
+    if (code === 0) {
+      return "ciel dégagé";
+    }
+
+    if (code <= 3) {
+      return "partiellement nuageux";
+    }
+
+    if (code <= 48) {
+      return "brumeux";
+    }
+
+    if (code <= 67) {
+      return "pluvieux";
+    }
+
+    if (code <= 77) {
+      return "neigeux";
+    }
+
+    if (code <= 82) {
+      return "averses";
+    }
+
+    if (code <= 99) {
+      return "orageux";
+    }
 
     return "temps variable";
+  }
+
+
+  function weatherCodeToIcon(code) {
+
+    // Soleil
+    if (code === 0) {
+      return "☀️";
+    }
+
+    // Nuages
+    if (code >= 1 && code <= 3) {
+      return "☁️";
+    }
+
+    // Brouillard
+    if (code >= 45 && code <= 48) {
+      return "☁️";
+    }
+
+    // Pluie
+    if (code >= 51 && code <= 67) {
+      return "🌧️";
+    }
+
+    // Neige
+    if (code >= 71 && code <= 77) {
+      return "❄️";
+    }
+
+    // Averses
+    if (code >= 80 && code <= 82) {
+      return "🌧️";
+    }
+
+    // Orage
+    if (code >= 95 && code <= 99) {
+      return "⛈️";
+    }
+
+    return "☁️";
   }
 
 
@@ -65,16 +148,23 @@ function initCommands(getCity, hooks) {
   // ============================================================
 
   function getTime() {
+
     const now = new Date();
 
-    const h = now.getHours();
-    const m = now.getMinutes().toString().padStart(2, '0');
+    const h =
+      now.getHours();
+
+    const m =
+      now.getMinutes()
+        .toString()
+        .padStart(2, '0');
 
     return `Il est ${h} heure ${m}.`;
   }
 
 
   function getDate() {
+
     const now = new Date();
 
     return `Nous sommes le ${now.toLocaleDateString('fr-FR', {
@@ -86,55 +176,74 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // SON DU MINUTEUR
+  // SON MINUTEUR
   // ============================================================
 
   function playBeep(times) {
+
     try {
+
       const AudioCtx =
         window.AudioContext ||
         window.webkitAudioContext;
 
-      if (!AudioCtx) return;
+      if (!AudioCtx) {
+        return;
+      }
 
-      const ctx = new AudioCtx();
+      const ctx =
+        new AudioCtx();
 
-      let startTime = ctx.currentTime;
+      let startTime =
+        ctx.currentTime;
+
 
       for (let i = 0; i < times; i++) {
 
-        const oscillator = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const oscillator =
+          ctx.createOscillator();
 
-        oscillator.frequency.value = 880;
+        const gain =
+          ctx.createGain();
+
+
+        oscillator.frequency.value =
+          880;
+
 
         oscillator.connect(gain);
         gain.connect(ctx.destination);
+
 
         gain.gain.setValueAtTime(
           0.001,
           startTime
         );
 
+
         gain.gain.linearRampToValueAtTime(
           0.3,
           startTime + 0.02
         );
+
 
         gain.gain.linearRampToValueAtTime(
           0.001,
           startTime + 0.25
         );
 
+
         oscillator.start(startTime);
-        oscillator.stop(startTime + 0.3);
+
+        oscillator.stop(
+          startTime + 0.3
+        );
+
 
         startTime += 0.4;
       }
 
-    } catch (e) {
-      // Pas bloquant si le son ne peut pas être joué
-    }
+    } catch (e) {}
   }
 
 
@@ -144,43 +253,56 @@ function initCommands(getCity, hooks) {
 
   function startTimer(amount, unit) {
 
-    // Si un minuteur existe déjà, on l'annule
     if (activeTimer !== null) {
+
       clearTimeout(activeTimer);
+
       activeTimer = null;
       activeTimerInfo = null;
     }
 
-    const isSeconds =
-      unit.toLowerCase().startsWith('seconde');
 
-    const milliseconds = isSeconds
-      ? amount * 1000
-      : amount * 60 * 1000;
+    const isSeconds =
+      unit.toLowerCase()
+        .startsWith('seconde');
+
+
+    const milliseconds =
+      isSeconds
+        ? amount * 1000
+        : amount * 60 * 1000;
 
 
     activeTimerInfo = {
-      amount: amount,
-      unit: isSeconds ? 'seconde' : 'minute'
+      amount,
+      unit
     };
 
 
-    activeTimer = setTimeout(() => {
+    activeTimer =
+      setTimeout(() => {
 
-      activeTimer = null;
-      activeTimerInfo = null;
+        activeTimer = null;
+        activeTimerInfo = null;
 
-      playBeep(4);
+        playBeep(4);
 
-      if (hooks && hooks.onTimerEnd) {
-        hooks.onTimerEnd();
-      }
 
-    }, milliseconds);
+        if (
+          hooks &&
+          hooks.onTimerEnd
+        ) {
+
+          hooks.onTimerEnd();
+        }
+
+      }, milliseconds);
 
 
     const unitText =
-      isSeconds ? 'seconde' : 'minute';
+      isSeconds
+        ? 'seconde'
+        : 'minute';
 
 
     return `Minuteur lancé pour ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
@@ -190,13 +312,16 @@ function initCommands(getCity, hooks) {
   function cancelTimer() {
 
     if (activeTimer === null) {
+
       return "Il n'y a aucun minuteur en cours.";
     }
+
 
     clearTimeout(activeTimer);
 
     activeTimer = null;
     activeTimerInfo = null;
+
 
     return "Minuteur annulé.";
   }
@@ -214,7 +339,10 @@ function initCommands(getCity, hooks) {
     ) {
 
       try {
-        Notification.requestPermission().catch(() => {});
+
+        Notification.requestPermission()
+          .catch(() => {});
+
       } catch (e) {}
     }
   }
@@ -222,7 +350,8 @@ function initCommands(getCity, hooks) {
 
   function sendReminderNotification(text) {
 
-    const message = text || 'Rappel !';
+    const message =
+      text || 'Rappel !';
 
 
     if (
@@ -232,66 +361,100 @@ function initCommands(getCity, hooks) {
 
       try {
 
-        new Notification('Jarvis - Rappel', {
-          body: message
-        });
+        new Notification(
+          'Jarvis - Rappel',
+          {
+            body: message
+          }
+        );
 
         return;
+
       } catch (e) {}
     }
 
 
-    // Solution de secours
     try {
-      alert('🔔 Jarvis : ' + message);
+
+      alert(
+        '🔔 Jarvis : ' + message
+      );
+
     } catch (e) {}
   }
 
 
-  function setReminder(amount, unit, text) {
+  function setReminder(
+    amount,
+    unit,
+    text
+  ) {
 
     requestNotificationPermission();
 
 
     const isSeconds =
-      unit.toLowerCase().startsWith('seconde');
+      unit.toLowerCase()
+        .startsWith('seconde');
 
-    const milliseconds = isSeconds
-      ? amount * 1000
-      : amount * 60 * 1000;
+
+    const milliseconds =
+      isSeconds
+        ? amount * 1000
+        : amount * 60 * 1000;
 
 
     const reminder = {
-      id: Date.now() + Math.random(),
+
+      id:
+        Date.now() +
+        Math.random(),
+
       timeout: null,
-      amount: amount,
-      unit: unit,
-      text: text || 'Rappel !'
+
+      amount,
+
+      unit,
+
+      text:
+        text || 'Rappel !'
     };
 
 
-    reminder.timeout = setTimeout(() => {
+    reminder.timeout =
+      setTimeout(() => {
 
-      sendReminderNotification(
-        reminder.text
-      );
-
-
-      const index =
-        reminders.indexOf(reminder);
-
-      if (index !== -1) {
-        reminders.splice(index, 1);
-      }
-
-    }, milliseconds);
+        sendReminderNotification(
+          reminder.text
+        );
 
 
-    reminders.push(reminder);
+        const index =
+          reminders.indexOf(
+            reminder
+          );
+
+
+        if (index !== -1) {
+
+          reminders.splice(
+            index,
+            1
+          );
+        }
+
+      }, milliseconds);
+
+
+    reminders.push(
+      reminder
+    );
 
 
     const unitText =
-      isSeconds ? 'seconde' : 'minute';
+      isSeconds
+        ? 'seconde'
+        : 'minute';
 
 
     return `Rappel programmé dans ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
@@ -301,12 +464,18 @@ function initCommands(getCity, hooks) {
   function cancelReminders() {
 
     if (reminders.length === 0) {
+
       return "Il n'y a aucun rappel en cours.";
     }
 
 
-    for (const reminder of reminders) {
-      clearTimeout(reminder.timeout);
+    for (
+      const reminder of reminders
+    ) {
+
+      clearTimeout(
+        reminder.timeout
+      );
     }
 
 
@@ -328,6 +497,7 @@ function initCommands(getCity, hooks) {
         ? 'Pile'
         : 'Face';
 
+
     return `${result} !`;
   }
 
@@ -338,14 +508,25 @@ function initCommands(getCity, hooks) {
 
   async function rollDice(faces) {
 
-    const n = faces || 6;
+    const n =
+      faces || 6;
+
 
     const result =
-      Math.floor(Math.random() * n) + 1;
+      Math.floor(
+        Math.random() * n
+      ) + 1;
 
 
-    if (hooks && hooks.onDiceRoll) {
-      await hooks.onDiceRoll(n, result);
+    if (
+      hooks &&
+      hooks.onDiceRoll
+    ) {
+
+      await hooks.onDiceRoll(
+        n,
+        result
+      );
     }
 
 
@@ -396,10 +577,6 @@ function initCommands(getCity, hooks) {
   };
 
 
-  // ============================================================
-  // CONVERSION NOMBRES FRANÇAIS
-  // ============================================================
-
   function normalizeNumberWords(text) {
 
     return text
@@ -417,7 +594,9 @@ function initCommands(getCity, hooks) {
 
 
     if (
-      /^\d+(?:[.,]\d+)?$/.test(normalized)
+      /^\d+(?:[.,]\d+)?$/.test(
+        normalized
+      )
     ) {
 
       return parseFloat(
@@ -451,7 +630,8 @@ function initCommands(getCity, hooks) {
           current = 1;
         }
 
-        total += current * 1000000;
+        total +=
+          current * 1000000;
 
         current = 0;
         found = true;
@@ -466,7 +646,8 @@ function initCommands(getCity, hooks) {
           current = 1;
         }
 
-        total += current * 1000000000;
+        total +=
+          current * 1000000000;
 
         current = 0;
         found = true;
@@ -497,7 +678,8 @@ function initCommands(getCity, hooks) {
             current = 1;
           }
 
-          total += current * 1000;
+          total +=
+            current * 1000;
 
           current = 0;
 
@@ -575,7 +757,10 @@ function initCommands(getCity, hooks) {
     for (const word of words) {
 
       const clean =
-        word.replace(/[.,!?]/g, '');
+        word.replace(
+          /[.,!?]/g,
+          ''
+        );
 
 
       const isNumberWord =
@@ -617,49 +802,108 @@ function initCommands(getCity, hooks) {
         .replace(/[\u0300-\u036f]/g, '');
 
 
-    // Expressions inutiles
+    t = t
+
+      .replace(
+        /\bcombien font\b/g,
+        ''
+      )
+
+      .replace(
+        /\bcombien fait\b/g,
+        ''
+      )
+
+      .replace(
+        /\bcombien fais\b/g,
+        ''
+      )
+
+      .replace(
+        /\bcalcule moi\b/g,
+        ''
+      )
+
+      .replace(
+        /\bcalcule-moi\b/g,
+        ''
+      )
+
+      .replace(
+        /\bcalcule\b/g,
+        ''
+      )
+
+      .replace(
+        /\bcalcul\b/g,
+        ''
+      )
+
+      .replace(
+        /\bfais le calcul de\b/g,
+        ''
+      )
+
+      .replace(
+        /\bpeux tu calculer\b/g,
+        ''
+      )
+
+      .replace(
+        /\bpeut tu calculer\b/g,
+        ''
+      )
+
+      .replace(
+        /\bça fait\b/g,
+        ''
+      )
+
+      .replace(
+        /\bca fait\b/g,
+        ''
+      )
+
+      .replace(
+        /\bs'il te plait\b/g,
+        ''
+      );
+
 
     t = t
 
-      .replace(/\bcombien font\b/g, '')
-      .replace(/\bcombien fait\b/g, '')
-      .replace(/\bcombien fais\b/g, '')
+      .replace(
+        /\bmultipli[eé]\s+par\b/g,
+        '*'
+      )
 
-      .replace(/\bcalcule moi\b/g, '')
-      .replace(/\bcalcule-moi\b/g, '')
-      .replace(/\bcalcule\b/g, '')
+      .replace(
+        /\bmultiplie\s+par\b/g,
+        '*'
+      )
 
-      .replace(/\bcalcul\b/g, '')
+      .replace(
+        /\bfois\b/g,
+        '*'
+      )
 
-      .replace(/\bfais le calcul de\b/g, '')
-
-      .replace(/\bpeux tu calculer\b/g, '')
-      .replace(/\bpeut tu calculer\b/g, '')
-
-      .replace(/\bça fait\b/g, '')
-      .replace(/\bca fait\b/g, '')
-
-      .replace(/\bs'il te plait\b/g, '')
-      .replace(/\bs'il te plaît\b/g, '');
-
-
-    // Multiplication
-
-    t = t
-      .replace(/\bmultipli[eé]\s+par\b/g, '*')
-      .replace(/\bmultiplie\s+par\b/g, '*')
-      .replace(/\bfois\b/g, '*')
-      .replace(/\bx\b/g, '*');
+      .replace(
+        /\bx\b/g,
+        '*'
+      );
 
 
-    // Division
+    t = t.replace(
+      /\bdivis[eé]\s+par\b/g,
+      '/'
+    );
 
-    t = t
-      .replace(/\bdivis[eé]\s+par\b/g, '/')
-      .replace(/\bdivise\s+par\b/g, '/');
 
+    t = t.replace(
+      /\bdivise\s+par\b/g,
+      '/'
+    );
 
-    // Addition
 
     t = t.replace(
       /\bplus\b/g,
@@ -667,24 +911,34 @@ function initCommands(getCity, hooks) {
     );
 
 
-    // Soustraction
-
     t = t.replace(
       /\bmoins\b/g,
       '-'
     );
 
 
-    // Puissance
-
     t = t
-      .replace(/\bau carr[eé]\b/g, '^2')
-      .replace(/\bau cube\b/g, '^3')
-      .replace(/\bpuissance de\b/g, '^')
-      .replace(/\bpuissance\b/g, '^');
 
+      .replace(
+        /\bau carr[eé]\b/g,
+        '^2'
+      )
 
-    // Racine carrée
+      .replace(
+        /\bau cube\b/g,
+        '^3'
+      )
+
+      .replace(
+        /\bpuissance de\b/g,
+        '^'
+      )
+
+      .replace(
+        /\bpuissance\b/g,
+        '^'
+      );
+
 
     t = t.replace(
       /\bracine carr[eé]e?\s+de\b/g,
@@ -692,26 +946,21 @@ function initCommands(getCity, hooks) {
     );
 
 
-    // Pourcentage
-
     t = t.replace(
       /\bpour\s*cent\b/g,
       '%'
     );
 
 
-    // Conversion nombres français
-
     t =
       replaceFrenchNumbers(t);
 
 
-    // Nettoyage
-
-    t = t
-      .replace(/,/g, '.')
-      .replace(/\s+/g, ' ')
-      .trim();
+    t =
+      t
+        .replace(/,/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim();
 
 
     return t;
@@ -719,7 +968,7 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // TOKENIZER CALCUL
+  // TOKENIZER
   // ============================================================
 
   function tokenizeExpression(expression) {
@@ -736,7 +985,9 @@ function initCommands(getCity, hooks) {
 
 
       if (char === ' ') {
+
         i++;
+
         continue;
       }
 
@@ -748,10 +999,13 @@ function initCommands(getCity, hooks) {
 
         while (
           i < expression.length &&
-          /[0-9.]/.test(expression[i])
+          /[0-9.]/.test(
+            expression[i]
+          )
         ) {
 
-          number += expression[i];
+          number +=
+            expression[i];
 
           i++;
         }
@@ -765,7 +1019,7 @@ function initCommands(getCity, hooks) {
 
           tokens.push({
             type: 'number',
-            value: value
+            value
           });
         }
 
@@ -799,13 +1053,15 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // CALCULATEUR
+  // ÉVALUATION
   // ============================================================
 
   function evaluateExpression(expression) {
 
     const tokens =
-      tokenizeExpression(expression);
+      tokenizeExpression(
+        expression
+      );
 
 
     if (!tokens.length) {
@@ -1052,7 +1308,8 @@ function initCommands(getCity, hooks) {
 
     if (
       Math.abs(
-        number - Math.round(number)
+        number -
+        Math.round(number)
       ) < 0.000000001
     ) {
 
@@ -1075,8 +1332,6 @@ function initCommands(getCity, hooks) {
     const expression =
       cleanCalculationText(text);
 
-
-    // Racine carrée
 
     const sqrtMatch =
       expression.match(
@@ -1105,8 +1360,6 @@ function initCommands(getCity, hooks) {
       return `La racine carrée de ${value} est ${formatNumber(result)}.`;
     }
 
-
-    // Pas de calcul détecté
 
     if (!/[0-9]/.test(expression)) {
       return null;
@@ -1140,7 +1393,8 @@ function initCommands(getCity, hooks) {
     } catch (err) {
 
       if (
-        err.message === 'DIVISION_ZERO'
+        err.message ===
+        'DIVISION_ZERO'
       ) {
 
         return "Impossible de diviser par zéro.";
@@ -1153,7 +1407,7 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // RECHERCHE WEB
+  // RECHERCHE
   // ============================================================
 
   function buildSearchQuery(t) {
@@ -1218,7 +1472,6 @@ function initCommands(getCity, hooks) {
 
     tasks.push(item);
 
-
     saveTasks(tasks);
 
 
@@ -1270,7 +1523,9 @@ function initCommands(getCity, hooks) {
     saveTasks(tasks);
 
 
-    if (tasks.length < before) {
+    if (
+      tasks.length < before
+    ) {
 
       return `${item} retiré de la liste.`;
     }
@@ -1289,7 +1544,7 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
-  // ROUTEUR PRINCIPAL
+  // ROUTEUR
   // ============================================================
 
   async function handle(text) {
@@ -1301,7 +1556,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 1. ANNULATION MINUTEUR
+    // ANNULATION MINUTEUR
     // ----------------------------------------------------------
 
     if (
@@ -1326,7 +1581,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 2. ANNULATION DES RAPPELS
+    // ANNULATION RAPPELS
     // ----------------------------------------------------------
 
     if (
@@ -1341,7 +1596,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 3. CALCUL
+    // CALCUL
     // ----------------------------------------------------------
 
     const calcResult =
@@ -1354,7 +1609,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 4. RECHERCHE
+    // RECHERCHE
     // ----------------------------------------------------------
 
     if (
@@ -1376,8 +1631,7 @@ function initCommands(getCity, hooks) {
         return {
 
           text:
-            `Voici ce que j'ai trouvé pour "${query}". ` +
-            `Touche le lien en bas pour l'ouvrir.`,
+            `Voici ce que j'ai trouvé pour "${query}". Touche le lien en bas pour l'ouvrir.`,
 
           link: url,
 
@@ -1389,7 +1643,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 5. LISTE
+    // LISTE
     // ----------------------------------------------------------
 
     if (
@@ -1469,7 +1723,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 6. MINUTEUR
+    // MINUTEUR
     // ----------------------------------------------------------
 
     const timerMatch =
@@ -1498,9 +1752,6 @@ function initCommands(getCity, hooks) {
     }
 
 
-    // Formulation du type :
-    // "dans 10 secondes lance un minuteur"
-
     const timerMatchReverse =
       t.match(
         /(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?).*(?:minuteur|chrono)/i
@@ -1528,7 +1779,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 7. PILE OU FACE
+    // PILE OU FACE
     // ----------------------------------------------------------
 
     if (
@@ -1543,7 +1794,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 8. DÉ
+    // DÉ
     // ----------------------------------------------------------
 
     const diceTrigger =
@@ -1584,7 +1835,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 9. MÉTÉO
+    // MÉTÉO
     // ----------------------------------------------------------
 
     if (
@@ -1599,7 +1850,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 10. HEURE
+    // HEURE
     // ----------------------------------------------------------
 
     if (
@@ -1607,14 +1858,7 @@ function initCommands(getCity, hooks) {
       t.includes("l'heure") ||
       t === 'heure' ||
       t.includes('heure est il') ||
-      t.includes('heure est-il')
-    ) {
-
-      return getTime();
-    }
-
-
-    if (
+      t.includes('heure est-il') ||
       t.includes('heure')
     ) {
 
@@ -1623,7 +1867,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 11. DATE
+    // DATE
     // ----------------------------------------------------------
 
     if (
@@ -1639,7 +1883,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 12. RAPPEL
+    // RAPPEL
     // ----------------------------------------------------------
 
     const reminderMatch =
@@ -1669,9 +1913,6 @@ function initCommands(getCity, hooks) {
     }
 
 
-    // Formulation :
-    // "dans 10 minutes rappelle-moi"
-
     const reminderReverse =
       t.match(
         /dans\s+(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?).*(?:rappelle|rappel)/i
@@ -1700,7 +1941,7 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 13. SALUTATION
+    // SALUTATION
     // ----------------------------------------------------------
 
     if (
@@ -1714,16 +1955,12 @@ function initCommands(getCity, hooks) {
 
 
     // ----------------------------------------------------------
-    // 14. RÉPONSE PAR DÉFAUT
+    // PAR DÉFAUT
     // ----------------------------------------------------------
 
     return "Je n'ai pas encore appris à faire ça, mais je progresse.";
   }
 
-
-  // ============================================================
-  // API PUBLIQUE
-  // ============================================================
 
   return {
     handle
