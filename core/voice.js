@@ -1,63 +1,61 @@
-function initVoice(onWake, onCommand, onSleep, onDebug) {
+function initVoice(onDebug) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
     onDebug('Reconnaissance vocale non supportée sur ce navigateur.');
-    return { start: () => {}, speak: (text) => console.log('Jarvis dirait:', text) };
+    return {
+      listenOnce: () => Promise.resolve(''),
+      speak: (text) => console.log('Jarvis dirait:', text)
+    };
   }
 
-  let mode = 'wake';
-  let recognition = new SpeechRecognition();
-  recognition.lang = 'fr-FR';
-  recognition.continuous = true;
-  recognition.interimResults = true;
+  function listenOnce() {
+    return new Promise((resolve) => {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fr-FR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-  recognition.onresult = (event) => {
-    const result = event.results[event.results.length - 1];
-    const transcript = result[0].transcript.trim().toLowerCase();
+      let resolved = false;
 
-    onDebug('Entendu : "' + transcript + '"' + (result.isFinal ? ' (final)' : ' (...)'));
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.trim();
+        resolved = true;
+        resolve(transcript);
+      };
 
-    if (!result.isFinal) return;
+      recognition.onerror = (e) => {
+        onDebug('Erreur: ' + e.error);
+        if (!resolved) {
+          resolved = true;
+          resolve('');
+        }
+      };
 
-    if (mode === 'wake') {
-      if (transcript.includes('hey jarvis') || transcript.includes('hé jarvis') || transcript.includes('ei jarvis') || transcript.includes('jarvis')) {
-        mode = 'command';
-        onWake();
+      recognition.onend = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve('');
+        }
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        onDebug('Erreur démarrage: ' + e.message);
+        resolve('');
       }
-    } else if (mode === 'command') {
-      mode = 'wake';
-      onCommand(transcript);
-    }
-  };
-
-  recognition.onend = () => {
-    onDebug('(recognition arrêtée, redémarrage...)');
-    try { recognition.start(); } catch (e) { onDebug('Erreur redémarrage: ' + e.message); }
-  };
-
-  recognition.onerror = (e) => {
-    onDebug('Erreur: ' + e.error);
-  };
+    });
+  }
 
   function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR';
-    utterance.onend = () => {
-      mode = 'wake';
-      onSleep();
-    };
-    speechSynthesis.speak(utterance);
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'fr-FR';
+      utterance.onend = resolve;
+      speechSynthesis.speak(utterance);
+    });
   }
 
-  function start() {
-    try {
-      recognition.start();
-      onDebug('Micro démarré, en écoute...');
-    } catch (e) {
-      onDebug('Erreur démarrage: ' + e.message);
-    }
-  }
-
-  return { start, speak };
+  return { listenOnce, speak };
 }
