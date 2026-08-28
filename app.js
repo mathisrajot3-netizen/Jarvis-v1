@@ -1,11 +1,15 @@
 const sphere = initSphere('sphere');
 const settings = initSettings();
-const commands = initCommands(settings.getCity);
+const dice = initDice();
 const status = document.getElementById('status');
 
 function showDebug(msg) {
   status.textContent = msg;
 }
+
+const commands = initCommands(settings.getCity, {
+  onDiceRoll: (faces, result) => dice.roll(faces, result)
+});
 
 const voice = initVoice(showDebug);
 
