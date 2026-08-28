@@ -233,4 +233,16 @@ function initCommands(getCity, hooks) {
     const reminderMatch = t.match(/rappel(?:le)?\s*(?:moi)?\s*(?:dans)?\s*(\d+)\s*minute/);
     if (reminderMatch) {
       const minutes = parseInt(reminderMatch[1], 10);
-      return setReminder(minutes,
+      return setReminder(minutes, 'Rappel demandé');
+    }
+
+    // 10. Salutation
+    if (t.includes('bonjour') || t.includes('salut')) {
+      return "Bonjour, comment puis-je vous aider ?";
+    }
+
+    return "Je n'ai pas encore appris à faire ça, mais je progresse.";
+  }
+
+  return { handle };
+}
