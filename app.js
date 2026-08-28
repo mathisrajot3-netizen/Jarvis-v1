@@ -3,6 +3,10 @@ const settings = initSettings();
 const commands = initCommands(settings.getCity);
 const status = document.getElementById('status');
 
+function showDebug(msg) {
+  status.textContent = msg;
+}
+
 const voice = initVoice(
   () => {
     sphere.setTalking(true);
@@ -15,11 +19,10 @@ const voice = initVoice(
   },
   () => {
     sphere.setTalking(false);
-    status.textContent = 'Dites « Hey Jarvis »';
-  }
+  },
+  showDebug
 );
 
-// Le micro doit démarrer après une interaction utilisateur (règle des navigateurs)
 document.body.addEventListener('click', function startOnce() {
   voice.start();
   document.body.removeEventListener('click', startOnce);
