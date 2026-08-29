@@ -54,6 +54,11 @@ const commands =
 
       onTimerEnd: async () => {
 
+        status.classList.remove(
+          'listening',
+          'thinking'
+        );
+
         status.textContent =
           'Le minuteur est terminé !';
 
@@ -174,6 +179,17 @@ document.body.addEventListener(
     );
 
 
+    // Jarvis se met à l'écoute :
+    // le statut pulse en bleu vif.
+
+    status.classList.remove(
+      'thinking'
+    );
+
+    status.classList.add(
+      'listening'
+    );
+
     status.textContent =
       'Je vous écoute...';
 
@@ -185,6 +201,10 @@ document.body.addEventListener(
     // Aucun résultat
 
     if (!transcript) {
+
+      status.classList.remove(
+        'listening'
+      );
 
       status.textContent =
         'Touchez la sphère pour parler';
@@ -201,6 +221,14 @@ document.body.addEventListener(
     }
 
 
+    // Fin de l'écoute : on retire
+    // la pulsation.
+
+    status.classList.remove(
+      'listening'
+    );
+
+
     // Affichage de ce qui
     // a été compris
 
@@ -210,12 +238,23 @@ document.body.addEventListener(
       '"';
 
 
-    // Traitement
+    // Traitement : Jarvis "réfléchit",
+    // le statut s'atténue légèrement.
+
+    status.classList.add(
+      'thinking'
+    );
+
 
     const response =
       await commands.handle(
         transcript
       );
+
+
+    status.classList.remove(
+      'thinking'
+    );
 
 
     // Texte de réponse
