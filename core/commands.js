@@ -104,37 +104,30 @@ function initCommands(getCity, hooks) {
 
   function weatherCodeToIcon(code) {
 
-    // Soleil
     if (code === 0) {
       return "☀️";
     }
 
-    // Nuages
     if (code >= 1 && code <= 3) {
       return "☁️";
     }
 
-    // Brouillard
     if (code >= 45 && code <= 48) {
       return "☁️";
     }
 
-    // Pluie
     if (code >= 51 && code <= 67) {
       return "🌧️";
     }
 
-    // Neige
     if (code >= 71 && code <= 77) {
       return "❄️";
     }
 
-    // Averses
     if (code >= 80 && code <= 82) {
       return "🌧️";
     }
 
-    // Orage
     if (code >= 95 && code <= 99) {
       return "⛈️";
     }
@@ -158,6 +151,13 @@ function initCommands(getCity, hooks) {
       now.getMinutes()
         .toString()
         .padStart(2, '0');
+
+    if (h === 0) {
+
+      return m === '00'
+        ? "Il est minuit."
+        : `Il est minuit ${m}.`;
+    }
 
     return `Il est ${h} heure ${m}.`;
   }
@@ -248,6 +248,47 @@ function initCommands(getCity, hooks) {
 
 
   // ============================================================
+  // UNITÉS DE TEMPS (secondes / minutes / heures)
+  // ============================================================
+
+  function parseUnitType(unit) {
+
+    const u =
+      unit.toLowerCase();
+
+    if (u.startsWith('seconde')) {
+      return 'seconde';
+    }
+
+    if (u.startsWith('heure')) {
+      return 'heure';
+    }
+
+    return 'minute';
+  }
+
+
+  function unitTypeToMilliseconds(amount, unitType) {
+
+    if (unitType === 'seconde') {
+      return amount * 1000;
+    }
+
+    if (unitType === 'heure') {
+      return amount * 60 * 60 * 1000;
+    }
+
+    return amount * 60 * 1000;
+  }
+
+
+  function unitTypeLabel(unitType, amount) {
+
+    return `${unitType}${amount > 1 ? 's' : ''}`;
+  }
+
+
+  // ============================================================
   // MINUTEUR
   // ============================================================
 
@@ -262,20 +303,20 @@ function initCommands(getCity, hooks) {
     }
 
 
-    const isSeconds =
-      unit.toLowerCase()
-        .startsWith('seconde');
+    const unitType =
+      parseUnitType(unit);
 
 
     const milliseconds =
-      isSeconds
-        ? amount * 1000
-        : amount * 60 * 1000;
+      unitTypeToMilliseconds(
+        amount,
+        unitType
+      );
 
 
     activeTimerInfo = {
       amount,
-      unit
+      unit: unitType
     };
 
 
@@ -299,13 +340,7 @@ function initCommands(getCity, hooks) {
       }, milliseconds);
 
 
-    const unitText =
-      isSeconds
-        ? 'seconde'
-        : 'minute';
-
-
-    return `Minuteur lancé pour ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
+    return `Minuteur lancé pour ${amount} ${unitTypeLabel(unitType, amount)}.`;
   }
 
 
@@ -393,15 +428,15 @@ function initCommands(getCity, hooks) {
     requestNotificationPermission();
 
 
-    const isSeconds =
-      unit.toLowerCase()
-        .startsWith('seconde');
+    const unitType =
+      parseUnitType(unit);
 
 
     const milliseconds =
-      isSeconds
-        ? amount * 1000
-        : amount * 60 * 1000;
+      unitTypeToMilliseconds(
+        amount,
+        unitType
+      );
 
 
     const reminder = {
@@ -414,7 +449,7 @@ function initCommands(getCity, hooks) {
 
       amount,
 
-      unit,
+      unit: unitType,
 
       text:
         text || 'Rappel !'
@@ -451,13 +486,7 @@ function initCommands(getCity, hooks) {
     );
 
 
-    const unitText =
-      isSeconds
-        ? 'seconde'
-        : 'minute';
-
-
-    return `Rappel programmé dans ${amount} ${unitText}${amount > 1 ? 's' : ''}.`;
+    return `Rappel programmé dans ${amount} ${unitTypeLabel(unitType, amount)}.`;
   }
 
 
@@ -1724,11 +1753,13 @@ function initCommands(getCity, hooks) {
 
     // ----------------------------------------------------------
     // MINUTEUR
+    // (placé avant MÉTÉO/HEURE/DATE pour éviter que "heure"
+    // dans "minuteur de 2 heures" ne soit intercepté ailleurs)
     // ----------------------------------------------------------
 
     const timerMatch =
       t.match(
-        /(?:mets|met|lance|lancer|démarre|demarre|active)?\s*(?:un\s+)?(?:minuteur|chrono|compte[ -]?à[ -]?rebours)\s*(?:de\s+|pour\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
+        /(?:mets|met|lance|lancer|démarre|demarre|active)?\s*(?:un\s+)?(?:minuteur|chrono|compte[ -]?à[ -]?rebours)\s*(?:de\s+|pour\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?|heures?)/i
       );
 
 
@@ -1754,7 +1785,7 @@ function initCommands(getCity, hooks) {
 
     const timerMatchReverse =
       t.match(
-        /(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?).*(?:minuteur|chrono)/i
+        /(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?|heures?).*(?:minuteur|chrono)/i
       );
 
 
@@ -1774,6 +1805,66 @@ function initCommands(getCity, hooks) {
       return startTimer(
         amount,
         unit
+      );
+    }
+
+
+    // ----------------------------------------------------------
+    // RAPPEL
+    // (placé avant MÉTÉO/HEURE/DATE : sinon "rappelle-moi dans
+    // 1 heure" était intercepté par le bloc HEURE)
+    // ----------------------------------------------------------
+
+    const reminderMatch =
+      t.match(
+        /(?:rappelle(?:[- ]?moi)?|rappel(?:[- ]?moi)?).*?(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?|heures?)/i
+      );
+
+
+    if (reminderMatch) {
+
+      const amount =
+        parseFloat(
+          reminderMatch[1]
+            .replace(',', '.')
+        );
+
+
+      const unit =
+        reminderMatch[2];
+
+
+      return setReminder(
+        amount,
+        unit,
+        'Rappel demandé'
+      );
+    }
+
+
+    const reminderReverse =
+      t.match(
+        /dans\s+(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?|heures?).*(?:rappelle|rappel)/i
+      );
+
+
+    if (reminderReverse) {
+
+      const amount =
+        parseFloat(
+          reminderReverse[1]
+            .replace(',', '.')
+        );
+
+
+      const unit =
+        reminderReverse[2];
+
+
+      return setReminder(
+        amount,
+        unit,
+        'Rappel demandé'
       );
     }
 
@@ -1879,64 +1970,6 @@ function initCommands(getCity, hooks) {
     ) {
 
       return getDate();
-    }
-
-
-    // ----------------------------------------------------------
-    // RAPPEL
-    // ----------------------------------------------------------
-
-    const reminderMatch =
-      t.match(
-        /(?:rappelle(?:[- ]?moi)?|rappel(?:[- ]?moi)?).*?(?:dans\s+)?(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?)/i
-      );
-
-
-    if (reminderMatch) {
-
-      const amount =
-        parseFloat(
-          reminderMatch[1]
-            .replace(',', '.')
-        );
-
-
-      const unit =
-        reminderMatch[2];
-
-
-      return setReminder(
-        amount,
-        unit,
-        'Rappel demandé'
-      );
-    }
-
-
-    const reminderReverse =
-      t.match(
-        /dans\s+(\d+(?:[.,]\d+)?)\s*(minutes?|secondes?).*(?:rappelle|rappel)/i
-      );
-
-
-    if (reminderReverse) {
-
-      const amount =
-        parseFloat(
-          reminderReverse[1]
-            .replace(',', '.')
-        );
-
-
-      const unit =
-        reminderReverse[2];
-
-
-      return setReminder(
-        amount,
-        unit,
-        'Rappel demandé'
-      );
     }
 
 
